@@ -1,0 +1,7 @@
+f := func(a:int32:in, b:float32:in) {
+
+     };
+
+t := type(struct{ a:int32, b:int32, c: char });
+
+a := type(array[20, 30].int32 
