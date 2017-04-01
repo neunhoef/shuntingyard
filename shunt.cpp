@@ -170,6 +170,68 @@ void tokenize() {
   }
 }
 
+std::vector<Token> output;
+std::vector<Token> opStack;
+
+void parseError() {
+  std::cout << "Parse error";
+  exit(2);
+}
+
+void parse() {
+  for (size_t i = 0; i < tokens.size(); ++i) {
+    Token& t = tokens[i];
+    switch (t.type) {
+      case Number:
+      case String: output.push_back(t); break;
+      case Function: opStack.push_back(t); break;
+      case Open: opStack.push_back(t); break;
+      case Operator:
+        if (t.tok == ",") {
+          while (opStack.size() > 0 && opStack.back().type != Open) {
+            output.push_back(opStack.back());
+            opStack.pop_back();
+          }
+          if (opStack.size() == 0) {
+            parseError();
+          }
+        } else {   // Proper operator
+          while (opStack.size() > 0 && opStack.back().type == Operator &&
+                 t.tok <= opStack.back().tok) {
+            output.push_back(opStack.back());
+            opStack.pop_back();
+          }
+          opStack.push_back(t);
+        }
+        break;
+      case Close:
+        while (opStack.size() > 0 && opStack.back().type != Open) {
+          output.push_back(opStack.back());
+          opStack.pop_back();
+        }
+        if (opStack.size() == 0) {
+          parseError();
+        }
+        opStack.pop_back();   // the opening bracket
+        if (opStack.size() > 0 && opStack.back().type == Function) {
+          output.push_back(opStack.back());
+          opStack.pop_back();
+        }
+        break;
+      default:
+        parseError();
+        break;
+    }
+  }
+  while (opStack.size() > 0) {
+    if (opStack.back().type == Open || opStack.back().type == Close) {
+      parseError();
+    }
+    output.push_back(opStack.back());
+    opStack.pop_back();
+  }
+}
+
 int main(int argc, char* argv[]) {
   std::fstream f(argv[1], std::ios_base::in);
   std::string line;
@@ -180,6 +242,11 @@ int main(int argc, char* argv[]) {
 
   tokenize();
   for (auto const& t : tokens) {
+    std::cout << typeNames[t.type] << " " << t.tok << "\n";
+  }
+  parse();
+  std::cout << "Parsed:\n";
+  for (auto const& t : output) {
     std::cout << typeNames[t.type] << " " << t.tok << "\n";
   }
 }
