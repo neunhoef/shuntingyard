@@ -5,3 +5,21 @@ f := func(a:int32:in, b:float32:in) {
 t := type(struct{ a:int32, b:int32, c: char });
 
 a := type(array[20, 30].int32 
+
+u := x + y - z;   # means (x + y) - z
+
+if (a < 12) { 
+  print("Kleiner")
+} { 
+  print{"Größer");
+}
+
+i := 1; loop(bla) { if (i > 10) { break(bla) };
+  
+  i := i + 1
+}
+
+i := var(int32);
+for (i := .. 10) {
+
+}

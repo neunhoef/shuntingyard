@@ -1,0 +1,12 @@
+1. Build a very fast tokenizer pointing into source text.
+2. Define a C++ data structure for expression trees.
+3. Implement a shunting yard parser producing expression trees.
+4. Define an evaluation algorithm for expressions.
+5. Implement first functions in C++ for numbers, chars and strings.
+6. Implement eval in C++.
+7. Implement REPL in C++.
+8. Implement functions working with expression trees, in particular quote.
+9. Implement further language features.
+10. Have a standalone language.
+11. Build a compiler in new language.
+12. Make the compiler compile itself.
