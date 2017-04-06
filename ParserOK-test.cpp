@@ -2,7 +2,7 @@
 #include "catch.hpp"
 #include "Parser.h"
 
-TEST_CASE("ParseOK", "[parseok]") {
+TEST_CASE("ParserOK", "[ParserOK]") {
 
 SECTION("number") {
   std::string number = R"(123)";

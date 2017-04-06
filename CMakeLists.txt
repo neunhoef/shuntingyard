@@ -16,7 +16,7 @@ add_executable(ParserTest ParserTest.cpp Expression.cpp Parser.cpp)
 set_property(TARGET ParserTest PROPERTY CXX_STANDARD 11)
 set_property(TARGET ParserTest PROPERTY CXX_STANDARD_REQUIRED ON)
 
-add_executable(UnitTests UnitTests.cpp ParseOK-test.cpp Expression.cpp Parser.cpp)
+add_executable(UnitTests UnitTests.cpp ParserOK-test.cpp Expression.cpp Parser.cpp)
 set_property(TARGET UnitTests PROPERTY CXX_STANDARD 11)
 set_property(TARGET UnitTests PROPERTY CXX_STANDARD_REQUIRED ON)
 
