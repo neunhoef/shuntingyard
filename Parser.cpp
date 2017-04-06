@@ -191,16 +191,9 @@ Expression* Parser::parseInternal() {
       }
       Expression* e;
       if (pos > 0 && _opStack[pos-1].type == TokenType::Open) {
-        if (_start[_opStack[pos-1].start] == '(') {
-          e = new Expression(ExprType::OPER, ExprBound::ROUND, toString(tos));
-        } else if (_start[_opStack[pos-1].start] == '[') {
-          e = new Expression(ExprType::OPER, ExprBound::BRACKET, toString(tos));
-        } else if (_start[_opStack[pos-1].start] == '{') {
-          e = new Expression(ExprType::OPER, ExprBound::BRACE, toString(tos));
-        } else {
-          // This cannot happen
-          parseError("Impossible case 1", tos);
-        }
+        e = new Expression(ExprType::OPER,
+            Expression::boundFromChar(_start[_opStack[pos-1].start]),
+            toString(tos));
       } else {
         e = new Expression(ExprType::OPER, ExprBound::NONE, toString(tos));
       }
@@ -250,8 +243,8 @@ Expression* Parser::parseInternal() {
       }
       case TokenType::Function: {
         _opStack.push_back(t);
-        stack.push_back(new Expression(ExprType::FUNC, ExprBound::ROUND,
-                                        toString(t)));
+        stack.push_back(new Expression(ExprType::FUNC, ExprBound::NONE,
+                                       toString(t)));
         break;
       }
       case TokenType::Open: {
@@ -275,7 +268,9 @@ Expression* Parser::parseInternal() {
         break;
       }
       case TokenType::Close: {
+        bool sawArg = false;
         while (_opStack.size() > 0 && _opStack.back().type != TokenType::Open) {
+          sawArg = true;
           execute();
         }
         if (_opStack.size() == 0) {
@@ -288,8 +283,26 @@ Expression* Parser::parseInternal() {
           parseError("found mismatched closing bracket", t);
         }
         _opStack.pop_back();   // the opening bracket
-        if (_opStack.size() > 0 && _opStack.back().type == TokenType::Function) {
+        // If we get here, there must have been a token before the current one!
+        if (_tokens[i-1].type == TokenType::Open) {
+          // Case of no arguments in bracket expression, we create
+          // an artificial one and put it on top of the stack:
+          Expression* e = new Expression(ExprType::OPER,
+              Expression::boundFromChar(_start[t.start]), ",");
+          stack.push_back(e);
+        } else if (stack.size() > 0 &&
+                   stack.back()->bound() == ExprBound::NONE) {
+          // If there is at least one argument on the stack, make sure that
+          // it has the right bound set:
+          stack.back()->setBound(Expression::boundFromChar(_start[t.start]));
+        }
+        if (_opStack.size() > 0 &&
+            _opStack.back().type == TokenType::Function) {
           if (i+1 >= _tokens.size() || _tokens[i+1].type != TokenType::Open) {
+            if (stack.back()->bound() == ExprBound::NONE) {
+              stack.back()->setBound(
+                  Expression::boundFromChar(_start[t.start]));
+            }
             execute();
           }
         }

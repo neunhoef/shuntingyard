@@ -66,6 +66,26 @@ class Expression {
     return _bound;
   }
 
+  static ExprBound boundFromChar(char c) {
+    switch (c) {
+      case '(':
+      case ')':
+        return ExprBound::ROUND;
+      case '[':
+      case ']':
+        return ExprBound::BRACKET;
+      case '{':
+      case '}':
+        return ExprBound::BRACE;
+      default:
+        return ExprBound::NONE;
+    }
+  }
+
+  void setBound(ExprBound b) {
+    _bound = b;
+  }
+
   int64_t getInt64() const {
     return _i;
   }
@@ -88,6 +108,19 @@ class Expression {
 
   void stringify(std::ostream& out) const {
     bool first;
+    switch (_bound) {
+      case ExprBound::ROUND:
+        out << '(';
+        break;
+      case ExprBound::BRACKET:
+        out << '[';
+        break;
+      case ExprBound::BRACE:
+        out << '{';
+        break;
+      case ExprBound::NONE:
+        break;
+    }
     switch (_type) {
       case ExprType::INT64:
         out << _i;
@@ -105,19 +138,6 @@ class Expression {
         out << _s;
         break;
       case ExprType::OPER:
-        switch (_bound) {
-          case ExprBound::ROUND:
-            out << '(';
-            break;
-          case ExprBound::BRACKET:
-            out << '[';
-            break;
-          case ExprBound::BRACE:
-            out << '{';
-            break;
-          default:
-            break;
-        }
         first = true;
         for (auto const* e : *_children) {
           if (!first) {
@@ -126,25 +146,25 @@ class Expression {
           first = false;
           e->stringify(out);
         }
-        switch (_bound) {
-          case ExprBound::ROUND:
-            out << ')';
-            break;
-          case ExprBound::BRACKET:
-            out << ']';
-            break;
-          case ExprBound::BRACE:
-            out << '}';
-            break;
-          default:
-            break;
-        }
         break;
       case ExprType::FUNC:
         out << _s;
         for (auto const* e : *_children) {
           e->stringify(out);
         }
+        break;
+    }
+    switch (_bound) {
+      case ExprBound::ROUND:
+        out << ')';
+        break;
+      case ExprBound::BRACKET:
+        out << ']';
+        break;
+      case ExprBound::BRACE:
+        out << '}';
+        break;
+      case ExprBound::NONE:
         break;
     }
   }
