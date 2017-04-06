@@ -279,13 +279,13 @@ Expression* Parser::parseInternal() {
           execute();
         }
         if (_opStack.size() == 0) {
-          parseError("found unmatched closing bracket", _opStack.back() );
+          parseError("found unmatched closing bracket", t);
         }
         Token& tos = _opStack.back();
         if ((_start[t.start] == ')' && _start[tos.start] != '(') ||
             (_start[t.start] == ']' && _start[tos.start] != '[') ||
             (_start[t.start] == '}' && _start[tos.start] != '{')) {
-          parseError("found mismatched closing bracket", tos);
+          parseError("found mismatched closing bracket", t);
         }
         _opStack.pop_back();   // the opening bracket
         if (_opStack.size() > 0 && _opStack.back().type == TokenType::Function) {

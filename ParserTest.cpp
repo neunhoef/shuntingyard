@@ -21,7 +21,7 @@ int main(int argc, char* argv[]) {
     e = p.parse();
   }
   catch (ParserException& ex) {
-    std::cerr << "Parsing error:\n" << ex.what() << std::endl;
+    std::cerr << ex.what() << std::endl;
     return 1;
   }
 
