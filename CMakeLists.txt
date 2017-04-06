@@ -2,6 +2,8 @@ cmake_minimum_required (VERSION 3.5)
 
 project (Shunt CXX)
 
+include_directories("include")
+
 add_executable(shunt shunt.cpp)
 set_property(TARGET shunt PROPERTY CXX_STANDARD 11)
 set_property(TARGET shunt PROPERTY CXX_STANDARD_REQUIRED ON)
@@ -13,3 +15,8 @@ set_property(TARGET ExpressionTest PROPERTY CXX_STANDARD_REQUIRED ON)
 add_executable(ParserTest ParserTest.cpp Expression.cpp Parser.cpp)
 set_property(TARGET ParserTest PROPERTY CXX_STANDARD 11)
 set_property(TARGET ParserTest PROPERTY CXX_STANDARD_REQUIRED ON)
+
+add_executable(UnitTests UnitTests.cpp ParseOK-test.cpp Expression.cpp Parser.cpp)
+set_property(TARGET UnitTests PROPERTY CXX_STANDARD 11)
+set_property(TARGET UnitTests PROPERTY CXX_STANDARD_REQUIRED ON)
+

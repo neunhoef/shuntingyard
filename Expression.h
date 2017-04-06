@@ -66,6 +66,22 @@ class Expression {
     return _bound;
   }
 
+  int64_t getInt64() const {
+    return _i;
+  }
+
+  double getDouble() const {
+    return _d;
+  }
+
+  std::string getString() const {
+    return _s;
+  }
+
+  std::vector<Expression*> const* getChildren() const {
+    return _children;
+  }
+
   void push(Expression* e) {
     _children->push_back(e);
   }

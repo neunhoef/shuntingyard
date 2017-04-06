@@ -35,10 +35,12 @@ class Parser {
     TokenType type;
     uint32_t start;   // Index in _input of parser
     uint32_t size;    // Size in bytes
+    uint32_t line;    // Number of source line
 
-    Token(TokenType t, size_t st, size_t si)
+    Token(TokenType t, size_t st, size_t si, size_t li)
       : type(t), start(static_cast<uint32_t>(st)),
-                 size(static_cast<uint32_t>(si)) {}
+                 size(static_cast<uint32_t>(si)),
+                 line(li) {}
   };
 
   std::string toString(Token const& t) {
@@ -101,8 +103,8 @@ class Parser {
   bool scanString();
   bool scanOperator();
   bool skipWhite();
-  bool  scanIdentifier();
-  void parseError();
+  bool scanIdentifier();
+  void parseError(std::string const& msg, Token const& t);
 
   void tokenize();
 
@@ -115,7 +117,7 @@ class Parser {
 
   Expression* parse() {
     tokenize();
-    showTokens(std::cout);
+    //showTokens(std::cout);
     Expression* e = parseInternal();
     _tokens.clear();
     return e;

@@ -36,7 +36,7 @@ bool Parser::scanNumber() {
   while (more && _start[_pos] >= '0' && _start[_pos] <= '9') {
     more = advance();
   }
-  _tokens.emplace_back(TokenType::Number, q, _pos - q);
+  _tokens.emplace_back(TokenType::Number, q, _pos - q, _line);
   return more;
 }
 
@@ -52,7 +52,7 @@ bool Parser::scanString() {
   if (!more) {
     tokenizerError("String constant ended in end of file");
   }
-  _tokens.emplace_back(TokenType::String, q, _pos - q);
+  _tokens.emplace_back(TokenType::String, q, _pos - q, _line);
   more = advance();
   return more;
 }
@@ -63,7 +63,7 @@ bool Parser::scanOperator() {
   while (more && isOp(_start[_pos])) {
     more = advance();
   }
-  _tokens.emplace_back(TokenType::Operator, q, _pos - q);
+  _tokens.emplace_back(TokenType::Operator, q, _pos - q, _line);
   return more;
 }
 
@@ -83,21 +83,22 @@ bool Parser::scanIdentifier() {
     more = advance();
   }
   if (!more) {
-    _tokens.emplace_back(TokenType::Identifier, q, _pos - q);
+    _tokens.emplace_back(TokenType::Identifier, q, _pos - q, _line);
     return false;
   }
   size_t q2 = _pos;
+  size_t line2 = _line;
   more = skipWhite();
   if (more) {
     if (_start[_pos] == '(' || _start[_pos] == '[' || _start[_pos] == '{') {
-      _tokens.emplace_back(TokenType::Function, q, q2 - q);
-      _tokens.emplace_back(TokenType::Open, _pos, 1);
+      _tokens.emplace_back(TokenType::Function, q, q2 - q, line2);
+      _tokens.emplace_back(TokenType::Open, _pos, 1, _line);
       more = advance();
     } else {
-      _tokens.emplace_back(TokenType::Identifier, q, q2 - q);
+      _tokens.emplace_back(TokenType::Identifier, q, q2 - q, line2);
     }
   } else {
-    _tokens.emplace_back(TokenType::Identifier, q, q2 - q);
+    _tokens.emplace_back(TokenType::Identifier, q, q2 - q, line2);
   }
   return more;
 }
@@ -113,13 +114,13 @@ void Parser::tokenize() {
       case '(':
       case '[':
       case '{':
-        _tokens.emplace_back(TokenType::Open, _pos, 1);
+        _tokens.emplace_back(TokenType::Open, _pos, 1, _line);
         more = advance();
         break;
       case ')':
       case ']':
       case '}':
-        _tokens.emplace_back(TokenType::Close, _pos, 1);
+        _tokens.emplace_back(TokenType::Close, _pos, 1, _line);
         more = advance();
         break;
       case '"':
@@ -150,8 +151,26 @@ void Parser::tokenize() {
   }
 }
 
-void Parser::parseError() {
-  throw ParserException("Parse error");
+void Parser::parseError(std::string const& msg, Token const& t) {
+  std::stringstream m;
+  m << "Parse error: line " << t.line << ":" << msg << "\n";
+  char const* p = _start + t.start;
+  while (p > _start && *p != '\n') {
+    --p;
+  }
+  if (p > _start) {
+    ++p;
+  }
+  char const* q = _start + t.start;
+  while (q - p < _size && *q != '\n') {
+    ++q;
+  }
+  m << std::string(p, q-p) << "\n";
+  for (size_t i = 0; i < (_start + t.start - p); i++) {
+    m << ' ';
+  }
+  m << "^\n";
+  throw ParserException(m.str());
 }
 
 Expression* Parser::parseInternal() {
@@ -179,7 +198,8 @@ Expression* Parser::parseInternal() {
         } else if (_start[_opStack[pos-1].start] == '{') {
           e = new Expression(ExprType::OPER, ExprBound::BRACE, toString(tos));
         } else {
-          parseError();
+          // This cannot happen
+          parseError("Impossible case 1", tos);
         }
       } else {
         e = new Expression(ExprType::OPER, ExprBound::NONE, toString(tos));
@@ -223,6 +243,11 @@ Expression* Parser::parseInternal() {
         stack.push_back(new Expression(toString(t)));
         break;
       }
+      case TokenType::Identifier: {
+        stack.push_back(new Expression(ExprType::IDEN, ExprBound::NONE,
+                                       toString(t)));
+        break;
+      }
       case TokenType::Function: {
         _opStack.push_back(t);
         stack.push_back(new Expression(ExprType::FUNC, ExprBound::ROUND,
@@ -254,13 +279,13 @@ Expression* Parser::parseInternal() {
           execute();
         }
         if (_opStack.size() == 0) {
-          parseError();
+          parseError("found unmatched closing bracket", _opStack.back() );
         }
         Token& tos = _opStack.back();
         if ((_start[t.start] == ')' && _start[tos.start] != '(') ||
             (_start[t.start] == ']' && _start[tos.start] != '[') ||
             (_start[t.start] == '}' && _start[tos.start] != '{')) {
-          parseError();
+          parseError("found mismatched closing bracket", tos);
         }
         _opStack.pop_back();   // the opening bracket
         if (_opStack.size() > 0 && _opStack.back().type == TokenType::Function) {
@@ -270,15 +295,11 @@ Expression* Parser::parseInternal() {
         }
         break;
       }
-      default: {
-        parseError();
-        break;
-      }
     }
   }
   while (_opStack.size() > 0) {
     if (_opStack.back().type == TokenType::Open) {
-      parseError();
+      parseError("found unmatched opening bracket", _opStack.back());
     }
     execute();
   }
