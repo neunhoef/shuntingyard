@@ -58,6 +58,14 @@ class Expression {
     }
   }
 
+  ExprType type() {
+    return _type;
+  }
+
+  ExprBound bound() {
+    return _bound;
+  }
+
   void push(Expression* e) {
     _children->push_back(e);
   }

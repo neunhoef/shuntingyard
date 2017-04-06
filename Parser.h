@@ -3,6 +3,7 @@
 #include <string>
 #include <exception>
 #include <unordered_map>
+#include <cstring>
 
 #include "Expression.h"
 
@@ -52,6 +53,13 @@ class Parser {
     return 6;
   }
 
+  bool tokensEqual(Token const& left, Token const& right) {
+    if (left.type != right.type || left.size != right.size) {
+      return false;
+    }
+    return strncmp(_start + left.start, _start + right.start, left.size) == 0;
+  }
+  
   char const* _start;
   size_t _size;
   size_t _pos;

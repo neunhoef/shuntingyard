@@ -155,79 +155,147 @@ void Parser::parseError() {
 }
 
 Expression* Parser::parseInternal() {
-  //std::string newOp;
-  uint32_t precNew;
-  std::string oldOp;
-  uint32_t precOld;
-  Token* tos;
   std::vector<Expression*> stack;
+
+  // The following takes one or more tokens from the _opStack and "executes"
+  // it in the sense that an Expression* is contructed incorporation the
+  // right things from the stack. Only call when there is an operation
+  // or a function on top of the _opStack!
+  auto execute = [&]() -> void {
+    Token& tos = _opStack.back();
+
+    _output.push_back(tos);
+
+    if (tos.type == TokenType::Operator) {
+      // Drill down until we hit the bottom or another operator:
+      size_t pos = _opStack.size()-1;
+      while (pos > 0 && tokensEqual(_opStack[pos-1], tos)) {
+        --pos;
+      }
+      Expression* e;
+      if (pos > 0 && _opStack[pos-1].type == TokenType::Open) {
+        if (_start[_opStack[pos-1].start] == '(') {
+          e = new Expression(ExprType::OPER, ExprBound::ROUND, toString(tos));
+        } else if (_start[_opStack[pos-1].start] == '[') {
+          e = new Expression(ExprType::OPER, ExprBound::BRACKET, toString(tos));
+        } else if (_start[_opStack[pos-1].start] == '{') {
+          e = new Expression(ExprType::OPER, ExprBound::BRACE, toString(tos));
+        } else {
+          parseError();
+        }
+      } else {
+        e = new Expression(ExprType::OPER, ExprBound::NONE, toString(tos));
+      }
+      size_t nrItems = _opStack.size() - pos + 1;
+      for (size_t i = stack.size() - nrItems; i < stack.size(); ++i) {
+        e->push(stack[i]);
+      }
+      for (size_t i = 0; i < nrItems; ++i) {
+        stack.pop_back();
+      }
+      stack.push_back(e);
+      _opStack.pop_back();
+    } else {  // tos.type == TokenType::Function
+      // Drill down in the stack until we find our FUNC entry:
+      size_t pos = stack.size()-1;
+      while (pos > 0 && stack[pos]->type() != ExprType::FUNC) {
+        --pos;
+      }
+      size_t nrArgs = stack.size() - 1 - pos;
+      Expression* e = stack[pos];
+      for (size_t i = pos + 1; i <= pos + nrArgs; ++i) {
+        e->push(stack[i]);
+      }
+      for (size_t i = 0; i < nrArgs; ++i) {
+        stack.pop_back();
+      }
+      _opStack.pop_back();
+    }
+  };
+
   for (size_t i = 0; i < _tokens.size(); ++i) {
     Token& t = _tokens[i];
     switch (t.type) {
-      case TokenType::Number:
+      case TokenType::Number: {
         _output.push_back(t);
+        std::string n(toString(t));
+        stack.push_back(new Expression(static_cast<int64_t>(std::stol(n))));
         break;
-      case TokenType::String:
+      }
+      case TokenType::String: {
         _output.push_back(t);
+        stack.push_back(new Expression(toString(t)));
         break;
-      case TokenType::Function:
+      }
+      case TokenType::Function: {
+        _opStack.push_back(t);
+        stack.push_back(new Expression(ExprType::FUNC, ExprBound::ROUND,
+                                        toString(t)));
+        break;
+      }
+      case TokenType::Open: {
         _opStack.push_back(t);
         break;
-      case TokenType::Open:
-        _opStack.push_back(t);
-        break;
+      }
       case TokenType::Operator: {
         std::string newOp = toString(t);
-        precNew = precedence(newOp);
+        uint32_t precNew = precedence(newOp);
         while (_opStack.size() > 0 &&
                _opStack.back().type == TokenType::Operator) {
-          tos = &_opStack.back();
-          oldOp = toString(*tos);
-          precOld = precedence(oldOp);
+          Token& tos = _opStack.back();
+          std::string oldOp = toString(tos);
+          uint32_t precOld = precedence(oldOp);
           if (precOld < precNew || (oldOp == newOp)) {
             break;
           }
-          _output.push_back(_opStack.back());
-          _opStack.pop_back();
+          execute();
         }
         _opStack.push_back(t);
         break;
       }
-      case TokenType::Close:
+      case TokenType::Close: {
         while (_opStack.size() > 0 && _opStack.back().type != TokenType::Open) {
-          _output.push_back(_opStack.back());
-          _opStack.pop_back();
+          execute();
         }
         if (_opStack.size() == 0) {
           parseError();
         }
-        tos = &_opStack.back();
-        if ((_start[t.start] == ')' && _start[tos->start] != '(') ||
-            (_start[t.start] == ']' && _start[tos->start] != '[') ||
-            (_start[t.start] == '}' && _start[tos->start] != '{')) {
+        Token& tos = _opStack.back();
+        if ((_start[t.start] == ')' && _start[tos.start] != '(') ||
+            (_start[t.start] == ']' && _start[tos.start] != '[') ||
+            (_start[t.start] == '}' && _start[tos.start] != '{')) {
           parseError();
         }
         _opStack.pop_back();   // the opening bracket
         if (_opStack.size() > 0 && _opStack.back().type == TokenType::Function) {
           if (i+1 >= _tokens.size() || _tokens[i+1].type != TokenType::Open) {
-            _output.push_back(_opStack.back());
-            _opStack.pop_back();
+            execute();
           }
         }
         break;
-      default:
+      }
+      default: {
         parseError();
         break;
+      }
     }
   }
   while (_opStack.size() > 0) {
-    if (_opStack.back().type == TokenType::Open ||
-        _opStack.back().type == TokenType::Close) {
+    if (_opStack.back().type == TokenType::Open) {
       parseError();
     }
-    _output.push_back(_opStack.back());
-    _opStack.pop_back();
+    execute();
   }
-  return nullptr;
+  if (stack.size() == 0) {
+    return nullptr;
+  } else if (stack.size() == 1) {
+    return stack[0];
+  } else {
+    Expression* res = new Expression(ExprType::OPER, ExprBound::NONE, " ");
+    for (Expression* e : stack) {
+      res->push(e);
+    }
+    return res;
+  }
 }
 
