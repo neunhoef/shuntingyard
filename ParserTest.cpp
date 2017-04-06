@@ -25,8 +25,6 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  p.showOutput(std::cout);
-
   if (e != nullptr) {
     std::cout << "Parsed expression: " << *e << std::endl;
   }

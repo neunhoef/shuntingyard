@@ -154,22 +154,30 @@ void Parser::parseError() {
   throw ParserException("Parse error");
 }
 
-void Parser::parseInternal() {
-  std::string newOp;
+Expression* Parser::parseInternal() {
+  //std::string newOp;
   uint32_t precNew;
   std::string oldOp;
   uint32_t precOld;
   Token* tos;
-
+  std::vector<Expression*> stack;
   for (size_t i = 0; i < _tokens.size(); ++i) {
     Token& t = _tokens[i];
     switch (t.type) {
       case TokenType::Number:
-      case TokenType::String: _output.push_back(t); break;
-      case TokenType::Function: _opStack.push_back(t); break;
-      case TokenType::Open: _opStack.push_back(t); break;
-      case TokenType::Operator:
-        newOp = toString(t);
+        _output.push_back(t);
+        break;
+      case TokenType::String:
+        _output.push_back(t);
+        break;
+      case TokenType::Function:
+        _opStack.push_back(t);
+        break;
+      case TokenType::Open:
+        _opStack.push_back(t);
+        break;
+      case TokenType::Operator: {
+        std::string newOp = toString(t);
         precNew = precedence(newOp);
         while (_opStack.size() > 0 &&
                _opStack.back().type == TokenType::Operator) {
@@ -184,6 +192,7 @@ void Parser::parseInternal() {
         }
         _opStack.push_back(t);
         break;
+      }
       case TokenType::Close:
         while (_opStack.size() > 0 && _opStack.back().type != TokenType::Open) {
           _output.push_back(_opStack.back());
@@ -219,8 +228,6 @@ void Parser::parseInternal() {
     _output.push_back(_opStack.back());
     _opStack.pop_back();
   }
-}
-
-Expression* Parser::makeExpression() {
   return nullptr;
 }
+

@@ -99,9 +99,7 @@ class Parser {
 
   void tokenize();
 
-  void parseInternal();
-
-  Expression* makeExpression();
+  Expression* parseInternal();
 
  public:
   Parser(char const* start, size_t size)
@@ -111,14 +109,15 @@ class Parser {
   Expression* parse() {
     tokenize();
     showTokens(std::cout);
-    parseInternal();
+    Expression* e = parseInternal();
     _tokens.clear();
-    Expression* e = makeExpression();
-    //_output.clear();
+    showOutput(std::cout);
+    _output.clear();
     return e;
   }
 
   void showTokens(std::ostream& out) {
+    out << "Tokenizer found:\n";
     for (auto const& t : _tokens) {
       out << typeNames[(uint32_t) t.type] << " "
           << std::string(_start + t.start, t.size) << "\n";
@@ -127,6 +126,7 @@ class Parser {
   }
 
   void showOutput(std::ostream& out) {
+    out << "Parser produced:\n";
     for (auto const& t : _output) {
       out << std::string(_start + t.start, t.size) << "\n";
     }
