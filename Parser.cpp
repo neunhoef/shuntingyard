@@ -205,12 +205,28 @@ Expression* Parser::parseInternal() {
         stack.pop_back();
       }
       stack.push_back(e);
-      _opStack.pop_back();
+      // Note that nrItems is at least 2
+      for (size_t i = 0; i < nrItems-1; ++i) {
+        _opStack.pop_back();
+      }
     } else {  // tos.type == TokenType::Function
-      // Drill down in the stack until we find our FUNC entry:
+      // Drill down in the stack until we find our FUNC entry, note that
+      // there is at least one argument (even if empty!), but there can
+      // be several other function entries as well, so we have to go down
+      // until we find the right name and no arguments yet:
       size_t pos = stack.size()-1;
-      while (pos > 0 && stack[pos]->type() != ExprType::FUNC) {
+      bool found = false;
+      while (pos > 0) {
         --pos;
+        if (stack[pos]->type() == ExprType::FUNC &&
+            stack[pos]->getChildren()->size() == 0 &&
+            stack[pos]->getString() == toString(tos)) {
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        parseError("internal error: did not find function on stack", tos);
       }
       size_t nrArgs = stack.size() - 1 - pos;
       Expression* e = stack[pos];
