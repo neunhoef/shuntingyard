@@ -78,7 +78,6 @@ class Parser {
   }
 
   std::vector<Token> _tokens;
-  std::vector<Token> _output;   // this is in reverse polish notation
   std::vector<Token> _opStack;
 
   bool isOp(char c) {
@@ -119,8 +118,6 @@ class Parser {
     showTokens(std::cout);
     Expression* e = parseInternal();
     _tokens.clear();
-    showOutput(std::cout);
-    _output.clear();
     return e;
   }
 
@@ -129,14 +126,6 @@ class Parser {
     for (auto const& t : _tokens) {
       out << typeNames[(uint32_t) t.type] << " "
           << std::string(_start + t.start, t.size) << "\n";
-    }
-    out << std::endl;
-  }
-
-  void showOutput(std::ostream& out) {
-    out << "Parser produced:\n";
-    for (auto const& t : _output) {
-      out << std::string(_start + t.start, t.size) << "\n";
     }
     out << std::endl;
   }

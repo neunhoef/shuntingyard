@@ -164,8 +164,6 @@ Expression* Parser::parseInternal() {
   auto execute = [&]() -> void {
     Token& tos = _opStack.back();
 
-    _output.push_back(tos);
-
     if (tos.type == TokenType::Operator) {
       // Drill down until we hit the bottom or another operator:
       size_t pos = _opStack.size()-1;
@@ -217,13 +215,11 @@ Expression* Parser::parseInternal() {
     Token& t = _tokens[i];
     switch (t.type) {
       case TokenType::Number: {
-        _output.push_back(t);
         std::string n(toString(t));
         stack.push_back(new Expression(static_cast<int64_t>(std::stol(n))));
         break;
       }
       case TokenType::String: {
-        _output.push_back(t);
         stack.push_back(new Expression(toString(t)));
         break;
       }
