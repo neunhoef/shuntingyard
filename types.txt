@@ -1,0 +1,49 @@
+All types have a representation as an expression, which is
+  type(TYPE)
+where TYPE is replaced by what is described below.
+
+Scalar:
+
+int8
+int16
+int32
+int64
+int128
+uint8
+uint16
+uint32
+uint64
+uint128
+float32
+float64
+string
+bool                 uses 1 byte in structs
+nil                  uses 0 bytes in structs
+
+Expressions:
+
+expr 
+type                 represented as an expression
+
+Composite types:
+
+array[3].TYPE
+struct {             packing is well-defined
+  IDEN : TYPE,
+  IDEN : TYPE,
+  NAME(4) : TYPE,    4 is the byte offset from the beginning of the structure
+}
+
+Indirect ones:
+
+ptr{TYPE}
+slice{TYPE}
+vector{TYPE}        holds allocation
+map{TYPE -> TYPE}
+
+For every type there is a representation of its objects as an expression.
+The scalar ones are clear (using the reserved identifiers nil, false and
+true) and number and string literals. expr and type are expressions. For
+arrays we use the reserved function names array[...] and struct[IDEN:TYPE,...].
+Likewise, ptr{TYPE}(ADDRESS) and slice{TYPE}(ADDRESS, SIZE, CAPACITY) and
+vector[...] and map["a" -> 1, "b" -> 2].

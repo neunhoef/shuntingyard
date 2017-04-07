@@ -1,10 +1,14 @@
-f := func(a:int32:in, b:float32:in) {
-
+f := func(a <- int32, b -> float32, c <-> string) {
+       # use a and c
+       b := ...    # sets the results
+       # changes to c are reflected outside
      };
+
+g := func(
 
 t := type(struct{ a:int32, b:int32, c: char });
 
-a := type(array[20, 30].int32 
+a := type(array[20].array[30].int32);
 
 u := x + y - z;   # means (x + y) - z
 
@@ -23,3 +27,9 @@ i := var(int32);
 for (i := .. 10) {
 
 }
+
+label(xyz) ;
+
+t := try(something);
+if (t = false) { goto(xyz) };
+

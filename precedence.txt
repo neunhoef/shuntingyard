@@ -7,6 +7,8 @@
 ^
 * / %          left assoc
 + -            left assoc
+<< >>          left assoc
+| &            left assoc
 < > <= >= =    left assoc
 
 || &&          left assoc
