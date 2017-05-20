@@ -18,7 +18,7 @@ float32
 float64
 string
 bool                 uses 1 byte in structs
-nil                  uses 0 bytes in structs
+niltype              uses 0 bytes in structs
 
 Expressions:
 
@@ -41,9 +41,43 @@ slice{TYPE}
 vector{TYPE}        holds allocation
 map{TYPE -> TYPE}
 
+Function types (by means of example):
+
+func(IDEN <- TYPE, ...)[...]...
+
+(an arbitrary sequence of round and square bracket arguments each containing
+either 
+
+  nothing, or
+  IDEN <- TYPE, or
+  IDEN -> TYPE, or
+  IDEN <-> TYPE, or
+  a non-empty comma expression of any of the previous three
+
+EBF:
+
+FUNCTYPE := "func" ARGLIST+
+ARGLIST :=   "()" 
+           | "[]"
+           | "(" INNERARGLIST ")"
+           | "[" INNERARGLIST "]"
+INNERARGLIST := ARG ("," ARG)*
+ARG :=   IDEN "<-" TYPE
+       | IDEN "->" TYPE
+       | IDEN "<->" TYPE
+
+Note that for a function type there may not be a curly brace expression,
+because this denotes the body of a function definition.
+
 For every type there is a representation of its objects as an expression.
 The scalar ones are clear (using the reserved identifiers nil, false and
 true) and number and string literals. expr and type are expressions. For
 arrays we use the reserved function names array[...] and struct[IDEN:TYPE,...].
 Likewise, ptr{TYPE}(ADDRESS) and slice{TYPE}(ADDRESS, SIZE, CAPACITY) and
 vector[...] and map["a" -> 1, "b" -> 2].
+
+A named type is expressed as
+
+type("auintvec", array[8].uint16)
+
+

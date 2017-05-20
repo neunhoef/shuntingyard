@@ -1,0 +1,53 @@
+Here are the evaluation rules by means of example, E and E1 and E2 and ...
+are place holders for arbitrary expressions to formulate the rules:
+
+eval(1)
+
+  1 : int64
+
+eval("abc")
+
+  "abc" : string
+
+eval(true)
+
+  true : bool
+
+eval(nil)
+
+  nil : niltype
+
+eval(expr(E))
+
+  E : expr
+
+eval(expr(E)[E2])
+
+  illegal
+
+eval(abc)
+
+  if "abc" is bound to value V and type T, then this evaluates to
+
+    V : T
+
+  otherwise an error occurs. Note that this can be decided at compile time!
+
+eval(E + E1)
+
+  if eval(E) and eval(E1) evaluate to types T and T1 and there is
+  a function bound to "+" with type
+
+    func(a <- T, b <- T1, c -> T2)
+
+  then this function is called with eval(E) for a and eval(E1) for b
+  and the whole expression evaluates to
+
+    c : T2
+
+eval(f(E)[E1](E2))
+
+  if "f" is bound to a function with type matched by the types in
+    (eval(E))[eval(E1)](eval(E2))
+  then f is called and the result is returned with the appropriate type.
+
