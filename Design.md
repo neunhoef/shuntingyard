@@ -8,11 +8,13 @@ Everything is an expression:
 
   - All program source code
   - All data has a representation as an expression
+  - Types have a representation as an expression
 
 The syntax allows
 
   - atoms
-  - function calls with 3 different sets of brackets and mu
+  - function calls with 3 different sets of brackets and multiple pairs
+    in one call, each containing arbitrary subexpressions
   - infix operations
 
 There is a very simple shunting yard like parser to parse source text
@@ -57,6 +59,9 @@ number token and not as a token `-` followed by a number token!
 
 Note that `#` is the comment character and is thus not available for
 identifiers.
+
+Note that `/` is a valid identifier character and thus `a/b` is a single
+token. For division one has to write `a / b` instead.
 
 Alternatively, an expression is a **function expression**, which has
 
@@ -131,8 +136,8 @@ there are three possibilities:
 
   1. The name is empty, in this case the representation is simply a pair
      of brackets of the right type around the canonical representation of
-     tje single subexpression that is allowed by rule 1. above
-  2. The name is an oprator, in this case the canonical representation 
+     the single subexpression that is allowed by rule 1. above
+  2. The name is an operator, in this case the canonical representation 
      is a (potentially bracketed) infix expression of the subexpressions.
   3. The name is an identifier, in this case the canonical representation
      is one token for the identifier for the name, followed by the correctly
@@ -170,7 +175,7 @@ the rules to parse a number (TODO: explain better)
     -0..9 negative
     0x    hex
     0b    binary
-    0     octal
+    0o    octal
     1..9  decimal
     . denotes float
     _ is allowed and ignored
@@ -198,7 +203,7 @@ rules to parse a string (TODO: explain better)
            control characters and line breaks) are simply copied until
            the sequence xyz is found again
 
-Examples:
+**Examples**:
 
     "abc\"def"
     "\(%%%)This is a multi-line
@@ -208,19 +213,28 @@ Examples:
     it is terminated by the sequence between the brackets.
     %%%
 
-Comments: A comment starts with a `#` character and usually simply ends
-at the end of the current input line (newline character). For multi-line
-comments one uses two `##` characters followed by any sequence not containing
-`#` or control characters, followed by a single `#` , everything up to and
-including the next occurrence of the sequence between `##` and `#` is removed.
+**Comments**: There are two forms for comments, one starts with two `##`
+characters and simply ends at the end of the current input line (newline
+character). For multi-line comments one uses two `#` characters with a
+non-empty sequence not containing `#` or control characters between the
+two `#` characters. Everything up to and including the next occurrence
+of the sequence between the `#` is removed.
 
-Examples:
+**Examples**:
 
-    # this is a one line comment
-    #this as well
-    ##%%%# This is the start of a multi line comment,
+    ## this is a one line comment
+
+    ##this as well
+
+    #%%%# This is the start of a multi line comment,
     everything up to and including the next occurrence of the sequence
     between ## and # is removed %%%
+
+    #...# This is also a start
+    and continues until the next occurrence of ... is found
+    ...## the following ## removes the rest of the line
+
+    This can be used to comment out something #%# within a line %.
 
 The brackets `(`, `)`, `[`, `]`, `{` and `}` are tokens in their own right
 and thus may not occur in identifiers.
@@ -260,7 +274,13 @@ or
 
     a- 2
 
-instead.
+instead. Furthermore, note that
+
+    a/b
+
+is one token and division of `a` by `b` must be denoted by
+
+    a / b
     
 
 ## Parsing
@@ -287,7 +307,7 @@ if it is.
 An operator is always put on the function stack, but before that higher
 precedence operators there have to be "executed".
 
-An opening bracket put on the function stack. A closing bracket leads to
+An opening bracket is put on the function stack. A closing bracket leads to
 an execute operation, which aims to assemble a complete function
 expression using the tops of the two stacks.
 
@@ -301,6 +321,7 @@ rules.
 
     .
 
+    -> <- <->
 
     ^
     * / %          left assoc
@@ -324,69 +345,84 @@ All types have a representation as an expression, which is
 
 where TYPE is replaced by what is described below.
 
-Scalar:
+**Scalar**:
 
-int8
-int16
-int32
-int64
-int128
-uint8
-uint16
-uint32
-uint64
-uint128
-float32
-float64
-string
-bool                 uses 1 byte in structs
-niltype              uses 0 bytes in structs
+    int8
+    int16
+    int32
+    int64
+    int128
+    uint8
+    uint16
+    uint32
+    uint64
+    uint128
+    float32
+    float64
+    string
+    bool                 uses 1 byte in structs
+    niltype              uses 0 bytes in structs
 
-Expressions:
+**Expressions**:
 
-expr 
-type                 represented as an expression
+    expr 
+    type                 represented as an expression
 
-Composite types:
+**Composite types**:
 
-array[3].TYPE
-struct {             packing is well-defined
-  IDEN : TYPE,
-  IDEN : TYPE,
-  NAME(4) : TYPE,    4 is the byte offset from the beginning of the structure
-}
+    array[3].TYPE
 
-Indirect ones:
+    struct {           packing is well-defined
+      IDEN : TYPE,
+      IDEN : TYPE,
+      offset(4),       4 is the byte offset from the beginning of the structure
+      IDEN : TYPE,
+    }
 
-ptr{TYPE}
-slice{TYPE}
-vector{TYPE}        holds allocation
-map{TYPE -> TYPE}
+Instead of an unsigned numerical value like 4 above one can specify the
+identifier of a previously mentioned field like so (to make a union of
+a uint64 and a float64:
 
-Function types (by means of example):
+    struct {
+      a : uint64,
+      offset(a),
+      b : float64,
+    }
 
-func(IDEN <- TYPE, ...)[...]...
+**Indirect types**:
+
+    ptr{TYPE}
+
+    slice{TYPE}
+
+    vector{TYPE}        holds allocation
+
+    map{TYPE -> TYPE}
+
+**Function types (by means of example)**:
+
+    func(IDEN <- TYPE, ...)[...]...
 
 (an arbitrary sequence of round and square bracket arguments each containing
 either 
 
-  nothing, or
-  IDEN <- TYPE, or
-  IDEN -> TYPE, or
-  IDEN <-> TYPE, or
-  a non-empty comma expression of any of the previous three
+    nothing, or
+    IDEN <- TYPE, or
+    IDEN -> TYPE, or
+    IDEN <-> TYPE, or
+    a non-empty comma expression of any of the previous three
 
-EBF:
+**EBF**:
 
-FUNCTYPE := "func" ARGLIST+
-ARGLIST :=   "()" 
-           | "[]"
-           | "(" INNERARGLIST ")"
-           | "[" INNERARGLIST "]"
-INNERARGLIST := ARG ("," ARG)*
-ARG :=   IDEN "<-" TYPE
-       | IDEN "->" TYPE
-       | IDEN "<->" TYPE
+    FUNCTYPE := "func" ARGLIST+
+    ARGLIST :=   "()" 
+               | "[]"
+               | "(" INNERARGLIST ")"
+               | "[" INNERARGLIST "]"
+    INNERARGLIST := ARG ("," ARG)*
+    ARG :=   IDEN "<-" TYPE
+           | IDEN "->" TYPE
+           | IDEN "<->" TYPE
 
 Note that for a function type there may not be a curly brace expression,
 because this denotes the body of a function definition.
@@ -413,27 +449,27 @@ are place holders for arbitrary expressions to formulate the rules:
 
 eval(1)
 
-  1 : int64
+    1 : int64
 
 eval("abc")
 
-  "abc" : string
+    "abc" : string
 
 eval(true)
 
-  true : bool
+    true : bool
 
 eval(nil)
 
-  nil : niltype
+    nil : niltype
 
 eval(expr(E))
 
-  E : expr
+    E : expr
 
 eval(expr(E)[E2])
 
-  illegal
+    illegal
 
 eval(abc)
 
