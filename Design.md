@@ -9,6 +9,7 @@ Everything is an expression:
   - All program source code
   - All data has a representation as an expression
   - Types have a representation as an expression
+  - Expressions can be used to implement DSLs
 
 The syntax allows
 
@@ -74,7 +75,7 @@ There are three rules:
 
   1. If the name is empty the vector of subexpressions must have length
      1 and must not be of empty bracket type.
-  2. If the name an operator, then all pairs must have the same bracket type.
+  2. If the name is an operator, then all pairs must have the same bracket type.
   3. If the name is an identifier, then no pair must have empty bracket type.
 
 In this document, we denote such a tree by putting the name (or "" for empty)
@@ -442,7 +443,7 @@ type("auintvec", array[8].uint16)
 ## Data Literals
 
 
-## Evalation of expressions
+## Evaluation of expressions
 
 Here are the evaluation rules by means of example, E and E1 and E2 and ...
 are place holders for arbitrary expressions to formulate the rules:

@@ -1,0 +1,13 @@
+ 0. Decide on a preliminary name "X" for now.
+ 1. Write a generic vector type in C.
+ 2. Write X bindings for it.
+ 3. Define an expression tree type in C.
+ 4. Write X bindings for it.
+ 5. Write the tokenizer in C, using vector type.
+ 6. Write X bindings for it.
+ 7. Write the shunting yard parser in C, using vector and expression type.
+ 8. Write X bindings for it.
+ 9. Think about memory management for expressions.
+10. Attack eval.
+11. Make declared and compiled functions callable.
+12. Implement REPL in C.
