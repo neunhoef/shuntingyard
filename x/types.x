@@ -6,7 +6,7 @@ int8 := type("int8");
 int16 := type("int16");
 int32 := type("int32");
 int64 := type("int64");
-int := type("int");       ## same bit width as a pointer
+intp := type("intp");     ## same bit width as a pointer
 intc := type("intc");     ## same bit width as a C int
 intl := type("intl");     ## same bit width as a C long int
 
@@ -14,7 +14,7 @@ uint8 := type("uint8");
 uint16 := type("uint16");
 uint32 := type("uint32");
 uint64 := type("uint64");
-uint := type("uint");     ## same bit width as a pointer
+uintp := type("uintp");   ## same bit width as a pointer
 uintc := type("uintc");   ## same bit width as a C int
 uintl := type("uintl");   ## same bit width as a C unsigned long int
 
@@ -42,12 +42,12 @@ type := type("type");
 ## vector ^ ...      slice keeping allocation
 ## map : ... -> ...  associative array
 ## struct{...}       structure
-## array[...] ^ ...
+## array[...] ^ ...  compile time fixed length
 
 ## Functions:
 
-## func(IDEN <- TYPE, ...)[...]...
-## func(IDEN <- TYPE, ...)[...]...{
+## func(IDEN <- TYPE, ...)
+## func(IDEN <- TYPE, ...){
 ##   ...
 ## }
 

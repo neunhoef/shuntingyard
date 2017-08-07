@@ -8,8 +8,8 @@ transforms a textual expression into an expression tree. In X,
 everything is an expression:
 
   - all program source code
-  - all data has a representation as an expression
-  - types have a representation as an expression
+  - all data has a canonical representation as an expression
+  - types have a canonical representation as an expression
 
 Since X code can readily use the parser, manipulate expression trees
 dump expression trees back into textual form, a lot of features that
@@ -17,9 +17,8 @@ are more complicated can be implemented in X itself as libraries
 extending the core language:
 
   - syntax checks (higher level than parsing)
-  - type 
-  - macros
   - templates
+  - macros
   - linting
   - borrow checking
   - inheritance
@@ -33,14 +32,14 @@ and similar to "normal" programming.
 
 Everything is an expression:
 
-  - All program source code
-  - All data has a representation as an expression
-  - Types have a representation as an expression
-  - Expressions can be used to implement DSLs
+  - all program source code
+  - all data has a canonical representation as an expression
+  - types have a canonical representation as an expression
+  - expressions can be used to implement DSLs
 
 The syntax allows
 
-  - atoms
+  - atoms (numbers, strings, identifiers)
   - function calls with 3 different sets of brackets and multiple pairs
     in one call, each containing arbitrary subexpressions
   - infix operations
@@ -59,12 +58,10 @@ An expression is either an atom:
       - int16
       - int32
       - int64
-      - int128
       - uint8
       - uint16
       - uint32
       - uint64
-      - uint128
 
   - a typed floating point number of one of the following types:
 
@@ -72,12 +69,14 @@ An expression is either an atom:
       - float64
 
   - a string constant (UTF-8, indicated by a `"` character)
+
   - an identifier, which can either consist of characters from this set:
 
         A..Z a..z _ 0..9 /
 
     and begin with a letter, an underscore or with / directly followed 
     by a letter or underscore
+
   - an operator, which can consist of characters from this set:
 
         !$%&'*+,-./:;<=>?@\^`|~
@@ -93,58 +92,63 @@ token. For division one has to write `a / b` instead.
 
 Alternatively, an expression is a **function expression**, which has
 
-  - an identifier or operator as name (can be empty for pure bracket 
-    expressions)
-  - a vector of pairs (s, b), where s is a subexpression and b is a bracket
-    type `empty`, `round`, `square` or `curly`.
+  - a name (which is a UTF-8 string),
+  - a bracket type `empty`, `round`, `square` or `curly`, and
+  - a vector of subexpressions
 
-There are three rules: 
+The name can be
 
-  1. If the name is empty the vector of subexpressions must have length
-     1 and must not be of empty bracket type.
-  2. If the name is an operator, then all pairs must have the same bracket type.
-  3. If the name is an identifier, then no pair must have empty bracket type.
+  - an **identifier** (must be non-empty), in which case it is a prefix
+    function expression
+  - an **operator** (must be non-empty), in which case it is an infix
+    operator expression
+  - **empty**, in which case it is merely used for the brackting
 
-In this document, we denote such a tree by putting the name (or "" for empty)
-in a line and the subexpressions in subsequent lines indented by a
-character, and with either `-` or `(` or `[` or `{` as the first
-character to indicate the bracket type. For example
+There are two rules: 
+
+  1. If the name is empty, the bracket type must not be empty and the vector
+     of subexpressions must have length 1
+  2. If the name is an identifier, then all subexpressions must have
+     non-empty bracket type.
+
+In this document, we denote such a tree by putting the name (or "" for
+empty) in a line, with the right brackets around it (or none) and the
+subexpressions in subsequent lines indented by a character.
 
     f
-     (s1
-     [s2
-     {s3
+     s1
+     s2
+     s3
 
 denotes a function expression in which `f` is the name, and there are
-three pairs with subexpressions s1 (round bracket type), s2 (square
-bracket type) and s3 (brace bracket type).
+three subexpressions s1, s2 and s3.
 
 Note that an infix notation of a function expression is also possible in the
 source representation. This tree:
 
     +
-     -a
-     -*
-       -b
-       -c
+     a
+     *
+      b
+      c
 
 is a tree, which would correspond to this source expression (see below):
 
-    a + b * c
+    a+b*c
 
 and the tree
 
     *
-     (+
-       -a
-       -b
-     -c
+     (+)
+      a
+      b
+     c
 
 would be
 
     (a+b)*c
 
-and is a tree with top name `*`, one argument pair of round bracket type and
+and is a tree with top name `*`, one argument of round bracket type and
 a subtree for `a+b`, and a second argument pair of empty bracket type with
 a single atom `c`.
 
@@ -159,8 +163,8 @@ tree.
 Every atom has a canonical representation as an input token, for details
 see the description of the tokenizer.
 
-For a function expression canonical representation depends on the name and
-there are three possibilities:
+For a function expression the canonical representation depends on the name
+and there are three possibilities:
 
   1. The name is empty, in this case the representation is simply a pair
      of brackets of the right type around the canonical representation of
@@ -171,25 +175,69 @@ there are three possibilities:
      is one token for the identifier for the name, followed by the correctly
      bracketed subexpressions.
 
-Example:
+Examples:
 
-    ""
-     (+
-       -f
-         (,
-           x
-           y
-       -z
+    (+)
+     f
+      (,)
+       x
+       y
+     z
 
 has the canonical representation
 
     (f(x,y)+z)
 
-Note that due to the rules for operator precedence it is not necessarily
-true that the canonical representation of an expression tree is parsed
-back to the original tree! On the other hand, except for comment removal
-and formatting, parsing followed by writing out the canonical representation
-always returns the same expression.
+    +
+     a
+     *
+      b
+      c
+
+has the canonical representation
+
+    a+b*c
+
+whilst
+
+    *
+     (+)
+      a
+      b
+     c
+
+has
+
+    (a+b)*c
+
+and
+
+    *
+     a
+     (+)
+      b
+      c
+
+has
+
+    a*(b+c)
+
+and
+
+    +
+     *
+      a
+      b
+     c
+
+has
+
+    a*b+c
+
+Note that due to the rules for operator precedence the canonical
+representation of a tree is always parsed back to the original tree, and
+except for comment removal and formatting, parsing followed by writing
+out the canonical representation always returns the same expression.
 
 
 ## Tokenizer
@@ -204,13 +252,13 @@ the rules to parse a number (TODO: explain better)
     0x    hex
     0b    binary
     0o    octal
-    1..9  decimal
-    . denotes float
-    _ is allowed and ignored
-    e or E for binary separates mantissa and exponent and means m*2^e
-    e or E for octal separates mantissa and exponent and means m*8^e
-    e or E for decimal separates mantissa and exponent and means m*10^e
-    x or X for hexadecimal separates mantissa and exponent and means m*16^x
+    0..9  decimal if second letter is neither `x`, `b` or `o`
+    . denotes float and serves as decimal point
+    _ is allowed and ignored (whitespace within numbers is not!)
+    *2^   stops the mantissa and starts an exponent with basis 2
+    *8^   stops the mantissa and starts an exponent with basis 8
+    *10^  stops the mantissa and starts an exponent with basis 10
+    *x^  stops the mantissa and starts an exponent with basis 16
     w8 or w16 or w32 or w64 or w128 selects size and w64 is the default
 
 A string constant is recognized by the character `"`. Here are the
@@ -244,9 +292,9 @@ rules to parse a string (TODO: explain better)
 **Comments**: There are two forms for comments, one starts with two `##`
 characters and simply ends at the end of the current input line (newline
 character). For multi-line comments one uses two `#` characters with a
-non-empty sequence not containing `#` or control characters between the
-two `#` characters. Everything up to and including the next occurrence
-of the sequence between the `#` is removed.
+non-empty sequence not containing `#`, space or control characters
+between the two `#` characters. Everything up to and including the next
+occurrence of the sequence between the `#` is removed.
 
 **Examples**:
 
@@ -259,13 +307,13 @@ of the sequence between the `#` is removed.
     between ## and # is removed %%%
 
     #...# This is also a start
-    and continues until the next occurrence of ... is found
+    and continues until the next occurrence of three dots is found
     ...## the following ## removes the rest of the line
 
     This can be used to comment out something #%# within a line %.
 
 The brackets `(`, `)`, `[`, `]`, `{` and `}` are tokens in their own right
-and thus may not occur in identifiers.
+and thus may not occur in identifiers or operators.
 
 As described above, an identifier consists of letters, digits,
 underscores and slashes, and starts with a letter, underscore, or with a
@@ -321,8 +369,8 @@ Here is an overview over the token types:
   - number
   - string
   - the six brackets `(`, `)`, `[`, `]`, `{` and `}`
-  - prefix type identifier
-  - infix type identifier
+  - prefix type identifier (function name)
+  - infix type identifier (operator name)
 
 A number is simply put on the expression stack as an atom.
 
@@ -349,9 +397,7 @@ rules.
 
     .
 
-    -> <- <->
-
-    ^
+    ^              right assoc
     * / %          left assoc
     + -            left assoc
     << >>          left assoc
@@ -359,6 +405,8 @@ rules.
     < > <= >= =    left assoc
 
     || &&          left assoc
+
+    -> <- <->
     :
     ,
     :=             left assoc
@@ -367,11 +415,16 @@ rules.
 
 ## Types and values
 
-All types have a representation as an expression, which is
+All types have a representation as an expression, which is either
+
+    type(NAME := TYPE)
+
+for a named type or
 
     type(TYPE)
 
-where TYPE is replaced by what is described below.
+for an anonymous or internal type, where TYPE is replaced by what
+is described below.
 
 **Scalar**:
 
@@ -379,12 +432,16 @@ where TYPE is replaced by what is described below.
     int16
     int32
     int64
-    int128
+    intp
+    intc
+    intl
     uint8
     uint16
     uint32
     uint64
-    uint128
+    uintp
+    uintc
+    uintl
     float32
     float64
     string
@@ -398,7 +455,7 @@ where TYPE is replaced by what is described below.
 
 **Composite types**:
 
-    array[3].TYPE
+    array[3] ^ TYPE
 
     struct {           packing is well-defined
       IDEN : TYPE,
@@ -419,35 +476,46 @@ a uint64 and a float64:
 
 **Indirect types**:
 
-    ptr{TYPE}
+Plain pointer to TYPE:
 
-    slice{TYPE}
+    ptr ^ TYPE
+
+Smart pointer with automatic deletion but no reference counting:
+
+    box ^ TYPE
+
+Smart pointer with automatic reference couting:
+
+    ref ^ TYPE
+
+Slices with a pointer and a length:
+
+    slice ^ TYPE
+
+Vector with a pointer, a length and a capacity with automatic deletion:
 
     vector{TYPE}        holds allocation
+
 
     map{TYPE -> TYPE}
 
 **Function types (by means of example)**:
 
-    func(IDEN <- TYPE, ...)[...]...
+    func(IDEN <- TYPE, ...)
 
-(an arbitrary sequence of round and square bracket arguments each containing
-either 
+(one subexpression with round bracket type which is either empty, a
+single subexpression as below or a comma expression with a sequence of
+non-empty expressions of the following shape:
 
-    nothing, or
     IDEN <- TYPE, or
     IDEN -> TYPE, or
     IDEN <-> TYPE, or
-    a non-empty comma expression of any of the previous three
 
 **EBF**:
 
-    FUNCTYPE := "func" ARGLIST+
-    ARGLIST :=   "()" 
-               | "[]"
-               | "(" INNERARGLIST ")"
-               | "[" INNERARGLIST "]"
-    INNERARGLIST := ARG ("," ARG)*
+    FUNCTYPE := "func" ARGLIST
+    ARGLIST :=   "(" ARG ("," ARG)* ")"
+               | "(" ")"
     ARG :=   IDEN "<-" TYPE
            | IDEN "->" TYPE
            | IDEN "<->" TYPE
@@ -455,19 +523,20 @@ either
 Note that for a function type there may not be a curly brace expression,
 because this denotes the body of a function definition.
 
+## Data Literals
+
 For every type there is a representation of its objects as an expression.
-The scalar ones are clear (using the reserved identifiers nil, false and
-true) and number and string literals. expr and type are expressions. For
-arrays we use the reserved function names array[...] and struct[IDEN:TYPE,...].
-Likewise, ptr{TYPE}(ADDRESS) and slice{TYPE}(ADDRESS, SIZE, CAPACITY) and
-vector[...] and map["a" -> 1, "b" -> 2].
+The scalar ones for builtin types are clear (using the reserved identifiers
+nil, false and true) and number and string literals. TO BE CONTINUED...
+expr and type are expressions. For arrays we use the reserved function
+names array[...] and struct[IDEN:TYPE,...]. Likewise, ptr{TYPE}(ADDRESS)
+and slice{TYPE}(ADDRESS, SIZE, CAPACITY) and vector[...] and map["a" ->
+1, "b" -> 2].
 
 A named type is expressed as
 
 type("auintvec", array[8].uint16)
 
-
-## Data Literals
 
 
 ## Evaluation of expressions
@@ -528,3 +597,4 @@ eval(f(E)[E1](E2))
 
 ## Name spaces
 
+There is a hierarchical tree of namespaces. Each input file
