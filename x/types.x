@@ -35,14 +35,14 @@ type := type("type");
 
 ## Composite types:
 
-## ptr ^ ...         pointer to some type
-## box ^ ...         unique_ptr
-## ref ^ ...         reference counting pointer
-## slice ^ ...       pointer and length
-## vector ^ ...      slice keeping allocation
-## map : ... -> ...  associative array
-## struct{...}       structure
-## array[...] ^ ...  compile time fixed length
+## ptr[...]         pointer to some type
+## box[...]         unique_ptr
+## ref[...]         reference counting pointer
+## slice[...]       pointer and length
+## vector[...]      slice keeping allocation
+## map[... -> ...]  associative array
+## struct[...]      structure
+## array[...][...]  compile time fixed length
 
 ## Functions:
 

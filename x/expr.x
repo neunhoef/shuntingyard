@@ -35,18 +35,19 @@ isOper := func(e <- expr, b -> bool);
 name := func(e <- expr, s -> string);
 bracketType := func(e <- expr, t -> BracketType);
 length := func(e <- expr, l -> uintp);
-at := func(e <- expr, pos <- uintp, res -> ref ^ expr);
+at := func(e <- expr, pos <- uintp, res -> expr);
 
 ExprNode := type(
-  struct {
-    i : int64,
-    offset(i),
-    u : uint64,
-    offset(i),
-    s : float(32),
-    offset(i),
-    d : float(64),
-  ## ...
+  struct [
+    offset(0)[
+      i : int64,
+      u : uint64,
+      s : float(32),
+      d : float(64),
+      p : ptr[niltype]
+    ],
+    bra : BracketType;
+    sub : vector[ExprNode]
   });
 
-
+expr := type(ref[ExprNode]);

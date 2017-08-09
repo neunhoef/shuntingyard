@@ -455,49 +455,49 @@ is described below.
 
 **Composite types**:
 
-    array[3] ^ TYPE
+    array[3][TYPE]
 
-    struct {           packing is well-defined
+    struct [           packing is well-defined
       IDEN : TYPE,
       IDEN : TYPE,
       offset(4),       4 is the byte offset from the beginning of the structure
       IDEN : TYPE,
-    }
+    ]
 
 Instead of an unsigned numerical value like 4 above one can specify the
 identifier of a previously mentioned field like so (to make a union of
 a uint64 and a float64:
 
-    struct {
+    struct [
       a : uint64,
       offset(a),
       b : float64,
-    }
+    ]
 
 **Indirect types**:
 
 Plain pointer to TYPE:
 
-    ptr ^ TYPE
+    ptr[TYPE]
 
 Smart pointer with automatic deletion but no reference counting:
 
-    box ^ TYPE
+    box[TYPE]
 
 Smart pointer with automatic reference couting:
 
-    ref ^ TYPE
+    ref[TYPE]
 
 Slices with a pointer and a length:
 
-    slice ^ TYPE
+    slice[TYPE]
 
 Vector with a pointer, a length and a capacity with automatic deletion:
 
-    vector{TYPE}        holds allocation
+    vector[TYPE]        holds allocation
 
 
-    map{TYPE -> TYPE}
+    map[TYPE -> TYPE]
 
 **Function types (by means of example)**:
 
@@ -527,16 +527,31 @@ because this denotes the body of a function definition.
 
 For every type there is a representation of its objects as an expression.
 The scalar ones for builtin types are clear (using the reserved identifiers
-nil, false and true) and number and string literals. TO BE CONTINUED...
-expr and type are expressions. For arrays we use the reserved function
-names array[...] and struct[IDEN:TYPE,...]. Likewise, ptr{TYPE}(ADDRESS)
-and slice{TYPE}(ADDRESS, SIZE, CAPACITY) and vector[...] and map["a" ->
-1, "b" -> 2].
+nil, false and true) and number and string literals. For the C integers
+`intp`, `intc`, `intl`, `uintp`, `uintc`, `uintl` one has to use 
+`intp{10}` and so on, already using the brace syntax.
+expr and type are expressions. For all other types we use in a similar
+way the type name with a brace expression appended.
+
+Examples:
+
+    array[3][int64]{1, 2, 3}
+    ptr[int64]{0x12345678}
+    box[int64]{0x12345678}
+    ref[int64]{0x12345678}
+    slice[float64]{0x12345678, 12}
+    vector[float64]{1.0, 2.0, 3.0}
+    struct[x : float64, y : float64]{x := 1.0, y := 2.0}
+
 
 A named type is expressed as
 
-type("auintvec", array[8].uint16)
+    type(auintvec := array[8][uint16])
 
+An expression is nothing but a reference counting pointer to an
+`ExprNode`:
+
+    /x/internal/types/expr := type(ref[ExprNode]);
 
 
 ## Evaluation of expressions
@@ -598,3 +613,104 @@ eval(f(E)[E1](E2))
 ## Name spaces
 
 There is a hierarchical tree of namespaces. Each input file
+
+
+## Function bodies
+
+The body of a function is a semicolon-separated list of expressions in
+curly brackets:
+
+     func(a <- int64, b <- int64, r -> int64) {
+       r := a + b;
+     }
+
+The return statement does not have an argument, one simple assigns to
+output arguments. An empty subexpression is allowed (as for example here
+the last one) and is a no-operation. Assignment takes a comma-separated
+list of L-values on the left of `:=` and a comma-separated list of
+expressions on the right. The semantic is to evaluate all expressions
+on the left and then assign the results to the list of L-values on the
+left.
+
+Example:
+
+    a, b, c := f(x), g(y);
+    ## if for example f returns 2 values and g one
+
+If statements:
+
+    if (CONDITION) {
+      ...
+    } ; elseif (CONDITION) {
+      ...
+    } ; else {
+      ...
+    }
+
+The `elseif` and `else` parts are optional. Round brackets and Braces
+must not be omitted.
+
+Loops:
+
+    name : loop (CONDITION) {
+      ...
+      leaveif(name, CONDITION3);
+      continueif(name, CONDITION4);
+      if (CONDITION2) {
+        ...
+        break(name);
+      };
+      if (CONDITION3) {
+        CONTTINUE(name);
+      };
+      ...
+    };
+
+The `name:` label part is optional, as is the `(name)` part in the
+`break` and `continue` statements. The `(CONDITION)` part is optional
+but, if present, is evaluated before entering the loop.
+
+Variables:
+
+Local variables are declared as follows:
+
+    i := var : int64;            ## Uninitialized
+    d := var : float64{12.0};    ## Initialized, could have been
+    o := var : ComplicatedObject{construct(12, "abc")};   ## initializer call
+    u := var : SomeObject;       ## Default init() is called and must exist
+
+Local variables are automatically destructed when going out of scope
+with `destruct` being called on them.
+
+For a type T, `destruct` always has this signature:
+
+    destruct(this <- ptr[T])
+
+Each constructor `construct`for a type T has as first argument a
+`ptr[T]`, usually called `this`. This type (and possibly others
+following) decides which constructor to take.
+
+Global variables are done in the same way. DO WE ALLOW INITIALIZERS
+HERE? AND IF SO, IN WHICH ORDER ARE THEY CALLED?
+
+Constants are done similarly:
+
+    c := const : float64{1.0};
+
+Local types:
+
+    t := type : 
+
+Catching exceptions:
+
+    try {
+      ...
+    } ;
+    except (e : TYPE) {
+      ...
+    } ; 
+    finally {
+      ...
+    }
+
+
