@@ -641,9 +641,9 @@ If statements:
 
     if (CONDITION) {
       ...
-    } ; elseif (CONDITION) {
+    } (CONDITION2) {    ## elseif part with another condition
       ...
-    } ; else {
+    } {                 ## else part
       ...
     }
 
@@ -654,15 +654,15 @@ Loops:
 
     name : loop (CONDITION) {
       ...
-      leaveif(name, CONDITION3);
-      continueif(name, CONDITION4);
       if (CONDITION2) {
         ...
         break(name);
       };
       if (CONDITION3) {
-        CONTTINUE(name);
+        continue(name);
       };
+      if (CONDITION4) { break };
+      if (CONDITION5) { continue };
       ...
     };
 
@@ -705,12 +705,39 @@ Catching exceptions:
 
     try {
       ...
-    } ;
-    except (e : TYPE) {
+    } (e : TYPE) {
       ...
-    } ; 
-    finally {
+    } {
       ...
     }
 
+
+Here is a coroutine:
+
+    c := func(from <- int32, to <- int32, val -> int32, done -> bool) {
+      i := var : int32{from};
+      loop (i <= to) {
+        val := i;
+        done := false;
+        yield;
+        i := i + 1;
+      }
+      done := true;
+    }
+
+And here is how to use it:
+
+    f := func() {
+      v := var : int32;
+      d := var : bool{false};
+      scope {
+        h := var : coroutine{c(10w32, 20w32)};
+        loop {
+          v, d := h();
+          if (not(d)) { break };
+          /x/io/writeln(v);
+        }
+      }
+      ## When h goes out of scope, the coroutine is shut down.
+    }
 
