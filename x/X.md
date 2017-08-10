@@ -650,6 +650,21 @@ If statements:
 The `elseif` and `else` parts are optional. Round brackets and Braces
 must not be omitted.
 
+This means that a switch can be done as follows:
+
+    x := someExpression;
+    if (x == 1) {
+      ## do something
+    } (x == 2) {
+      ## do something else
+    } (x == 3) {
+      ## do something else
+    } {
+      ## default action
+    }
+
+The compiler can itself find out that this is a switch.
+
 Loops:
 
     name : loop (CONDITION) {
@@ -715,7 +730,7 @@ Catching exceptions:
 Here is a coroutine:
 
     c := func(from <- int32, to <- int32, val -> int32, done -> bool) {
-      i := var : int32{from};
+      i := from;        ## this declares i as variable of type int32
       loop (i <= to) {
         val := i;
         done := false;
@@ -728,10 +743,10 @@ Here is a coroutine:
 And here is how to use it:
 
     f := func() {
-      v := var : int32;
-      d := var : bool{false};
+      v := var(int32);
+      d := var(bool{false});
       scope {
-        h := var : coroutine{c(10w32, 20w32)};
+        h := var(coroutine{c(10w32, 20w32)});
         loop {
           v, d := h();
           if (not(d)) { break };
