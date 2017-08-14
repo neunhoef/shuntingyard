@@ -58,10 +58,16 @@ An expression is either an atom:
       - int16
       - int32
       - int64
+      - int      (same width as a pointer)
+      - intc     (same width as a C int)
+      - intl     (same width as a C long int)
       - uint8
       - uint16
       - uint32
       - uint64
+      - uint     (same width as a pointer)
+      - intc     (same width as a C unsigned int)
+      - intl     (same width as a C unsigned long int)
 
   - a typed floating point number of one of the following types:
 
@@ -259,7 +265,10 @@ the rules to parse a number (TODO: explain better)
     *8^   stops the mantissa and starts an exponent with basis 8
     *10^  stops the mantissa and starts an exponent with basis 10
     *x^  stops the mantissa and starts an exponent with basis 16
-    w8 or w16 or w32 or w64 or w128 selects size and w64 is the default
+    u    switches to unsigned
+    w8 or w16 or w32 or w64 or w128 selects size, wc and wl select
+         width of a C int or long respectively, the default is int
+         or uint, which is exactly the same width as a pointer
 
 A string constant is recognized by the character `"`. Here are the
 rules to parse a string (TODO: explain better)
