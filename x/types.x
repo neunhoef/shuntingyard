@@ -44,7 +44,7 @@ type := type("type");
 ## struct[...]      structure
 ## array[...][...]  compile time fixed length
 ## chan[...][...]   first argument buffer size, second argument type
-
+## interface [...]  semicolon separated list of function
 ## Functions:
 
 ## func(IDEN <- TYPE, ...)

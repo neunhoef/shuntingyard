@@ -66,8 +66,8 @@ An expression is either an atom:
       - uint32
       - uint64
       - uint     (same width as a pointer)
-      - intc     (same width as a C unsigned int)
-      - intl     (same width as a C unsigned long int)
+      - uintc    (same width as a C unsigned int)
+      - uintl    (same width as a C unsigned long int)
 
   - a typed floating point number of one of the following types:
 
@@ -441,14 +441,14 @@ is described below.
     int16
     int32
     int64
-    intp
+    int
     intc
     intl
     uint8
     uint16
     uint32
     uint64
-    uintp
+    uint
     uintc
     uintl
     float32
@@ -621,7 +621,7 @@ eval(f(E)[E1](E2))
 
 ## Name spaces
 
-There is a hierarchical tree of namespaces. Each input file
+There is a hierarchical tree of namespaces. Each input file ...
 
 
 ## Function bodies
@@ -753,6 +753,7 @@ And here is how to use it:
 
     f := func() {
       v := var(int32);
+      v := var : int32;
       d := var(bool{false});
       scope {
         h := var(coroutine{c(10w32, 20w32)});
