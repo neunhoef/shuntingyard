@@ -680,10 +680,10 @@ Loops:
       ...
       if (CONDITION2) {
         ...
-        break(name);
+        break(name)
       };
       if (CONDITION3) {
-        continue(name);
+        continue(name)
       };
       if (CONDITION4) { break };
       if (CONDITION5) { continue };
@@ -752,7 +752,7 @@ Here is a coroutine:
 And here is how to use it:
 
     f := func() {
-      v := var(int32);
+      v := var : int32;
       v := var : int32;
       d := var(bool{false});
       scope {
@@ -765,4 +765,46 @@ And here is how to use it:
       }
       ## When h goes out of scope, the coroutine is shut down.
     }
+
+Semantics of local variables on the stack:
+
+    f := func(a <- int) {
+      o := var : mytype{cons(1, 2, "abc")};
+      ...
+      o2 := var : mytype{cons(2, 3)};
+      ...
+      o3 := var : ptr[mytype]{alloc(3, 4)};
+      ...
+      if (a == 1) {
+        ...
+        return
+      }
+      ...
+    }
+
+When execution reaches o, a new variable named "o" comes into scope, it
+is of type "mytype" and the constructor with arguments 1, 2 and "abc" is
+called. Similarly with o2. For o3, a new value of type pointer to mytype
+comes into scope. It is initialized as a pointer to a newly allocated
+structure of type "mytype" or a null pointer if allocation failed. Then
+the constructor "cons" is called with arguments 3 and 4.
+
+If there is an explicit definition of a function alloc like this exists:
+
+    func alloc(res -> ptr[mytype])
+
+or
+
+    func alloc(nr <- uint, res -> ptr[mytype])
+
+then this is called, it must allocate memory for a "mytype" object and
+then the constructor must construct the object at the same time and return the pointer.
+
+If the scope of any of these is left (return statement or end of
+function), then nothing happens for o3, but first for o2 and then
+for o the destructor "dest" is called, which must be a function with 
+this signature:
+
+    func dest(o <-> mytype)
+
 

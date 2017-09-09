@@ -48,6 +48,6 @@ ExprNode := type(
     ],
     bra : BracketType;
     sub : vector[ExprNode]
-  });
+  ]);
 
 expr := type(ref[ExprNode]);
