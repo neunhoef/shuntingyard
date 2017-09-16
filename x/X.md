@@ -415,10 +415,10 @@ rules.
 
     || &&          left assoc
 
-    -> <- <->
+    -> <- <-> --> <-- <-->
     :
     ,
-    :=             left assoc
+    := :==         left assoc
     ;
 
 
@@ -471,6 +471,10 @@ is described below.
       IDEN : TYPE,
       offset(4),       4 is the byte offset from the beginning of the structure
       IDEN : TYPE,
+     public,
+      IDEN2 : TYPE,    from the word "public" on everything is visible
+     private,
+      IDEN3 : TYPE     from the word "private" on everything is private
     ]
 
 Instead of an unsigned numerical value like 4 above one can specify the
@@ -766,6 +770,8 @@ And here is how to use it:
       ## When h goes out of scope, the coroutine is shut down.
     }
 
+## Objects, constructors, destructors, allocators and freeers
+
 Semantics of local variables on the stack:
 
     f := func(a <- int) {
@@ -800,11 +806,152 @@ or
 then this is called, it must allocate memory for a "mytype" object and
 then the constructor must construct the object at the same time and return the pointer.
 
+There is also
+
+    func free(p <- ptr[mytype])
+
 If the scope of any of these is left (return statement or end of
 function), then nothing happens for o3, but first for o2 and then
 for o the destructor "dest" is called, which must be a function with 
 this signature:
 
     func dest(o <-> mytype)
+
+## Generic types
+
+The following generic types are built in the language:
+
+### Dumb pointer: `ptr[T]`
+
+This is a pointer to an object of type T. No special magic, the
+constructor can take a `uint` as address or nothing, in which case
+the pointer is null.
+
+Generic function are:
+
+    cons := func(p <-> ptr[T]);
+    cons := func(p <-> ptr[T], a <- uint);
+    dest := func(p <-> P);
+    isNull := func(p <- ptr[T], res -> bool);
+    ":=" := func(p <-> P, q <- P);
+    "+" := func(p <- ptr[T], steps <- int, res -> ptr[T]);
+    "-" := func(p <- ptr[T], steps <- int, res -> ptr[T]);
+    "-" := func(p <- ptr[T], q <- ptr[T], res -> int);
+    address := func(p <- ptr[T], res -> uint);
+
+Since we know for every type T how many bytes it needs, this can all
+be implemented generically.
+
+That is, a dumb pointer implements the IsPointer interface:
+
+    PointerInterface := interface(P) {
+      cons := func(p <-> P);
+      cons := func(p <-> P, a <- uint);
+      dest := func(p <-> P);
+      isNull := func(p <- P, res -> bool);
+      ":=" := func(p <-> P, q <- P);
+      "+" := func(p <- P, steps <- int, res -> P);
+      "-" := func(p <- P, steps <- int, res -> P);
+      "-" := func(p <- P, q <- P, res -> int);
+      address := func(p <- P, res -> uint);
+    };
+
+### Automatic pointers: `box[T]`
+
+This is similar to a `unique_ptr` in C++, it is a pointer that guards
+the allocation of the object it is pointing to.
+
+Only the destructor is different, it automatically calls the destructor
+of the object being pointed to, and frees the allocation.
+### Reference counting pointers: `ref[T]`
+
+This is similar to a `shard_ptr` in C++, it is a pointer that guards
+the allocation of the object it is pointing to. It does so in a
+multi-threaded way using an atomic uint reference counter in the first
+few bytes of the object pointed to.
+
+
+## Access to struct components
+
+**Rule**: There are public and private components, a private component
+can only be accessed from a function which receives the variable as
+input/output, or in a struct literal when building an object..
+
+Example:
+
+    T := type : struct[
+      x : int64,
+      y : int64
+    ];
+    { in, out,  } x { 
+    C: call by value, call by ptr reference, call by const ptr reference
+    cons := func(t(out) : T
+    cons := func(t <-> T, xx <- int64, yy <- int64) {
+      t.x := xx;   ## allowed because of input/output parameter
+      t.y := yy;
+    }
+
+    T t
+    T& t
+    T const&
+
+    b := func(t(inout) : T)
+    a := func() {
+      A := var : T{x := 1, y := 2};   ## allowed because of struct literal
+      B := var : T{cons(3, 4)};       ## allowed because of constructor
+      A.y := 12;                      ## allowed because of public
+
+A function argument can be an input, an output, or a reference, which is
+denoted by
+
+    NAME <- TYPE          for an input argument
+    NAME -> TYPE          for an output argument
+    NAME <-> TYPE         for a reference argument
+
+Inputs are generally immutable, output arguments count as uninitialized
+but can be written to. Reference arguments count as initialized and
+can be modified. If the TYPE is a struct type, then the above notation
+does not allow the function to inspect the member variables. If the
+function shall have access to the member values, one has to write two
+minus signs as in
+
+    NAME <-- TYPE         to give the function read access to members
+    NAME --> TYPE         to give the function write access to members
+    NAME <--> TYPE        to give the function read/write access to members
+
+A normal function taking two immutable inputs and a single result
+without member access:
+
+    sale :== func(a <- int, b <- int, c -> int);
+
+A constructor is called `cons` and has the type it is constructing as
+the first output argument (here the type is `User`):
+
+    cons :== func(u --> User, name <- string, firstName <- string)
+
+A destructor is called `dest` and has the type it is destructing as
+the only argument which is a reference:
+
+    dest := func(u <--> User);
+
+An allocator for a type `User` has one of the following two signatures:
+
+    alloc := func(u -> ptr[User]);
+    alloc := func(u -> ptr[User], nr <- uint);     (for arrays)
+
+A free for a type `User` has one of the following two signatures:
+
+    free := func(u <- ptr[User]);
+
+Here is a table showing how arguments of a function can be passed on,
+the row says how an argument was passed into the function, the column
+says, how the argument can be passed on to a called function:
+
+    argument    <-      <->     ->
+    <-          +       -       - 
+    <->         +       +       (**)
+    ->          (*)     (*)     + 
+            (*) means after initialization
+            (**) after destruction
 
 
