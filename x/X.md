@@ -254,7 +254,9 @@ character lookahead method to find token boundaries and types.
 A number is detected by a decimal digit or a - follewed by one. Here are
 the rules to parse a number (TODO: explain better)
 
-    -0..9 negative
+    +0..9 positive signed
+    -0..9 negative signed
+    0..9  unsigned
     0x    hex
     0b    binary
     0o    octal
@@ -265,10 +267,13 @@ the rules to parse a number (TODO: explain better)
     *8^   stops the mantissa and starts an exponent with basis 8
     *10^  stops the mantissa and starts an exponent with basis 10
     *x^  stops the mantissa and starts an exponent with basis 16
-    u    switches to unsigned
-    w8 or w16 or w32 or w64 or w128 selects size, wc and wl select
-         width of a C int or long respectively, the default is int
-         or uint, which is exactly the same width as a pointer
+
+The result is either int64 for signed or uint64 for unsigned or float64.
+One can express a constant of a different type by using the notation
+
+    uint32{17}
+
+for example.
 
 A string constant is recognized by the character `"`. Here are the
 rules to parse a string (TODO: explain better)
@@ -287,6 +292,10 @@ rules to parse a string (TODO: explain better)
            characters switches to raw mode, in which characters (including
            control characters and line breaks) are simply copied until
            the sequence xyz is found again
+    \c     as first letters in the string switches to character mode,
+           only a single Unicode code point is allowed to follow, a
+           closing character " must follow after that and the result
+           is an unsigned number of type uint32.
 
 **Examples**:
 
@@ -297,6 +306,8 @@ rules to parse a string (TODO: explain better)
     special characters like " and \ and everything,
     it is terminated by the sequence between the brackets.
     %%%
+    "\cA" is the same as uint32{65}
+
 
 **Comments**: There are two forms for comments, one starts with two `##`
 characters and simply ends at the end of the current input line (newline
@@ -418,7 +429,7 @@ rules.
     -> <- <-> --> <-- <-->
     :
     ,
-    := :==         left assoc
+    := ::=         left assoc
     ;
 
 
@@ -911,9 +922,9 @@ denoted by
 Inputs are generally immutable, output arguments count as uninitialized
 but can be written to. Reference arguments count as initialized and
 can be modified. If the TYPE is a struct type, then the above notation
-does not allow the function to inspect the member variables. If the
-function shall have access to the member values, one has to write two
-minus signs as in
+does not allow the function to inspect or modify the member variables.
+If the function shall have access to the member values, one has to write
+two minus signs as in
 
     NAME <-- TYPE         to give the function read access to members
     NAME --> TYPE         to give the function write access to members
