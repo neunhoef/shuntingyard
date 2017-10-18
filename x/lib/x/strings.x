@@ -4,7 +4,7 @@ the builtin type /x/string.
 ---
 
 namespace := /x;
-search := [/x/];   ## This is the default and this could be omitted.
+search := [/x/errors];
 
 string ::= type :
   struct[
@@ -17,7 +17,7 @@ string ::= type :
 ## Constructors:
 
 init/empty ::= func(s --> string) {
-  s.buf := ptr[uint8]{0u};
+  s.buf := ptr[uint8]{0};
   s.alloc := 0;
   s.size := 0;
 };
@@ -25,18 +25,18 @@ init/empty ::= func(s --> string) {
 init/allocSize ::= func(s --> string, allocSize <- uint) {
   s.buf := ptr[uint8]{/C/string/malloc(allocSize)};
   if (isNull(s.buf)) {
-    s.alloc := 0u;
+    s.alloc := 0;
   } {
     s.alloc := allocSize;
   }
-  s.size := 0u;
+  s.size := 0;
 };
 
 init/ptrSize ::= func(s --> string, cs <- ptr[uint8], len <- uint) {
   s.buf := ptr[uint8]{/C/string/malloc(len)};
   if (isNull(s.buf)) {
-    s.alloc := 0u;
-    s.size := 0u;
+    s.alloc := 0;
+    s.size := 0;
   } {
     /C/string/memcpy(s.buf, cs, len);
     s.alloc := len;
@@ -58,21 +58,22 @@ init/copy ::= func(s --> strings, t <-- string) {
 
 exit ::= func(s <--> string) {
   /C/string/free(s.buf);
-  s.buf := ptr[uint8]{0u};
-  s.alloc := 0u;
-  s.size := 0u;
+  s.buf := ptr[uint8]{0};
+  s.alloc := 0;
+  s.size := 0;
 }
 
 ## Setters:
 
-void x__strings__set__empty(s <--> string) {
+set/empty := func(s <--> string) {
+
   /C/stdlib/free(s.buf);
-  s.buf := ptr[uint8]{0u};
-  s.alloc := 0u;
-  s.size := 0u;
+  s.buf := ptr[uint8]{0};
+  s.alloc := 0;
+  s.size := 0;
 }
 
-void x__strings__set__ptrSize(s <--> string, m <- ptr[uint8], len <- uint) {
+set/ptrSize := func(s <--> string, m <- ptr[uint8], len <- uint) {
   if (s.alloc >= len && s.alloc <= 2 * len) {
     /C/string/memcpy(s.buf, m, len);
     s.size = len;
@@ -84,12 +85,12 @@ void x__strings__set__ptrSize(s <--> string, m <- ptr[uint8], len <- uint) {
       s.buf := tmp;
       /C/string/memcpy(s.buf, m, len);
     }
-      
+  }
 }
 
 ## Array access:
 
-at_raw := func(s <-- string, pos <- uint, c -> uint8) {
+at_raw ::= func(s <-- string, pos <- uint, c -> uint8) {
   c := s.buf[pos];
 };
 
@@ -124,24 +125,20 @@ reserve ::= func(s <--> string, size <- uint, iserror -> bool) [error] {
 
 ## Appending:
 
-append/string ::= func(s <--> string, t <-- string, iserror -> bool) [error] {
-  iserror := false;
-  if (reserve(s, s.size + t.size)) { iserror := true; return; };
+append/string ::= func(s <--> string, t <-- string) [error] {
+  reserve(s, s.size + t.size); if (err) { return };
   /C/string/memcpy(s.buf + s.size, t.buf, t.size);
   s.size += t.size;
 };
 
-append/char ::= func(s <--> string, c <- uint8, iserror -> bool) [error] {
-  iserror := false;
-  if (reserve(s, s.size + 1u)) { iserror := true; return; };
+append/char ::= func(s <--> string, c <- uint8) [error] {
+  reserve(s, s.size + 1u); if (err) { return };
   s.buf[s.size] := c;
   s.size += 1u;
 };
 
-append/chars ::= func(s <--> string, t <- ptr[uint8], si <- uint,
-                      iserror -> bool) [error] {
-  iserror := false;
-  if (reserve(s, s.size + si)) { iserror := true; return; }
+append/chars ::= func(s <--> string, t <- ptr[uint8], si <- uint) [error] {
+  reserve(s, s.size + si); if (err) { return };
   /C/string/memcpy(s.buf + s.size, t, si);
   s.size += si;
 };

@@ -6,7 +6,7 @@ of a thread local, static and global variable `error` of type `error`
 ---
 
 namespace := /x/errors;
-search := [/x/];   ## this is the default and could be omitted
+search := [/x/strings];
 
 ## The data type itself:
 
@@ -32,14 +32,14 @@ init/msg ::= func(e --> error, c <- int32, m <- ptr[uint8]) {
 
 ## Setters:
 
-set/empty ::= func(e --> error) {
+set/empty ::= func(e <--> error) {
   e.code := int32{0};
   e.len := int32{0};
   set(e.longMsg);
   e.data := ptr[niltype]{0u};
 }
 
-set/msg ::= func(e --> error, c <- int32, m <- ptr[uint8]) {
+set/msg ::= func(e <--> error, c <- int32, m <- ptr[uint8]) {
   e.code := c;
   size := var : uint{/C/string/strlen(m)};
   if (size <= 96) {

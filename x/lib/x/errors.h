@@ -6,51 +6,51 @@
 
 extern "C" {
 
-struct x__errors__error {
+struct x_errors_error {
   int32_t code;
   uint32_t len;
   unsigned char msg[96];
-  x__strings__string longMsg;
+  x_strings_string longMsg;
   void* data;
 };
 
-extern thread_local x__errors__error x__errors__err;
+extern thread_local x_errors_error x_errors_err;
 
 // Constructors:
 
-void x__errors__init__empty(x__errors__error* e);
-void x__errors__init__msg(x__errors__error* e, int32_t c, uint8_t const* const m);
+void x_errors_init_empty(x_errors_error& e);
+void x_errors_init_msg(x_errors_error& e, int32_t c, uint8_t const* const m);
 
 // Setters:
 
-void x__errors__set__empty(x__errors__error* e);
-void x__errors__set__msg(x__errors__error* e, int32_t c, uint8_t const* const m);
+void x_errors_set_empty(x_errors_error& e);
+void x_errors_set_msg(x_errors_error& e, int32_t c, uint8_t const* const m);
 
 // Destructor:
 
-void x__errors__exit(x__errors__error* e);
+void x_errors_exit(x_errors_error& e);
 
-// Test if no x__errors__error occurred:
+// Test if no x_errors_error occurred:
 
-bool x__errors__ok(x__errors__error* e);
+bool x_errors_ok(x_errors_error& e);
 
 // Test if an error occurred:
 
-bool x__errors__bool(x__errors__error* e);
+bool x_errors_bool(x_errors_error& e);
 
 // Return the error code:
 
-int32_t x__errors__code(x__errors__error* e);
+int32_t x_errors_code(x_errors_error& e);
 
 // Retrieve the error message:
 
-void x__errors__msg(x__errors__error* e, x__strings__string* res);
+void x_errors_msg(x_errors_error& e, x_strings_string& res);
 
 // Error codes:
 
-extern int32_t const x__errors__OUT_OF_BOUNDS;
-extern uint8_t const* const x__errors__OUT_OF_BOUNDS_MSG;
-extern int32_t const x__errors__ALLOCATION_FAILED;
-extern uint8_t const* const x__errors__ALLOCATION_FAILED_MSG;
+extern int32_t const x_errors_OUT_OF_BOUNDS;
+extern uint8_t const* const x_errors_OUT_OF_BOUNDS_MSG;
+extern int32_t const x_errors_ALLOCATION_FAILED;
+extern uint8_t const* const x_errors_ALLOCATION_FAILED_MSG;
 
 }

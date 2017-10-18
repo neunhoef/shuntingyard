@@ -751,6 +751,8 @@ Catching exceptions:
     }
 
 
+NO LONGER TRUE:
+
 Here is a coroutine:
 
     c := func(from <- int32, to <- int32, val -> int32, done -> bool) {
@@ -891,8 +893,8 @@ input/output, or in a struct literal when building an object..
 Example:
 
     T := type : struct[
-      x : int64,
-      y : int64
+      x : int64;
+      y : int64;
     ];
     { in, out,  } x { 
     C: call by value, call by ptr reference, call by const ptr reference
@@ -933,24 +935,24 @@ two minus signs as in
 A normal function taking two immutable inputs and a single result
 without member access:
 
-    sale :== func(a <- int, b <- int, c -> int);
+    sale ::= func(a <- int, b <- int, c -> int);
 
-A constructor is called `cons` and has the type it is constructing as
+A constructor is called `init` and has the type it is constructing as
 the first output argument (here the type is `User`):
 
-    cons :== func(u --> User, name <- string, firstName <- string)
+    init  ::= func(u --> User, name <- string, firstName <- string)
 
 A destructor is called `dest` and has the type it is destructing as
 the only argument which is a reference:
 
-    dest := func(u <--> User);
+    exit := func(u <--> User);
 
 An allocator for a type `User` has one of the following two signatures:
 
     alloc := func(u -> ptr[User]);
     alloc := func(u -> ptr[User], nr <- uint);     (for arrays)
 
-A free for a type `User` has one of the following two signatures:
+A free for a type `User` has the following signature:
 
     free := func(u <- ptr[User]);
 
