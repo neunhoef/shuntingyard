@@ -66,8 +66,8 @@ void x_strings_set_ptrSize(x_strings_string& s, uint8_t const* const m, size_t l
   } else {
     uint8_t* tmp = (uint8_t*) realloc(s.buf, len);
     if (tmp == nullptr) {
-      x_errors_set_msg(x_errors_err, x_errors_ALLOCATION_FAILED,
-                       x_errors_ALLOCATION_FAILED_MSG);
+      x_errors_set_msg(x_errors_err, x_errors_ALLOCATION__FAILED,
+                       x_errors_ALLOCATION__FAILED__MSG);
     } else {
       s.buf = tmp;
       memcpy(s.buf, m, len);
@@ -83,17 +83,49 @@ uint8_t x_strings_at(x_strings_string& s, size_t pos) {
   if (pos < s.size) {
     return s.buf[pos];
   } else {
-    x_errors_set_msg(x_errors_err, x_errors_OUT_OF_BOUNDS,
-                     x_errors_OUT_OF_BOUNDS_MSG);
+    x_errors_set_msg(x_errors_err, x_errors_OUT__OF__BOUNDS,
+                     x_errors_OUT__OF__BOUNDS__MSG);
     return 0;
   }
 }
 
-bool x_strings_reserve(x_strings_string& s, size_t size);
-
-bool x_strings_append_string(x_strings_string& s, x_strings_string const& t);
-bool x_strings_append_char(x_strings_string& s, uint8_t c);
-bool x_strings_append_chars(x_strings_string& s, uint8_t const* const t, size_t si);
-
+void x_strings_reserve(x_strings_string& s, size_t size) {
+  if (s.alloc < size) {
+    size_t newSize = 2 * s.alloc;
+    if (newSize < size) {
+      newSize = size;
+    }
+    uint8_t* newbuf = (uint8_t*) realloc(s.buf, newSize);
+    if (newbuf == nullptr) {
+      x_errors_set_msg(x_errors_err, x_errors_ALLOCATION__FAILED,
+                       x_errors_ALLOCATION__FAILED__MSG);
+    } {
+      s.buf = newbuf;
+      s.alloc = newSize;
+    }
+  }
 }
 
+void x_strings_append_string(x_strings_string& s, x_strings_string const& t) {
+  x_strings_reserve(s, s.size + t.size);
+  if (x_errors_bool(x_errors_err)) { return; }
+  memcpy(s.buf + s.size, t.buf, t.size);
+  s.size += t.size;
+}
+
+void x_strings_append_char(x_strings_string& s, uint8_t c) {
+  x_strings_reserve(s, s.size + 1);
+  if (x_errors_bool(x_errors_err)) { return; }
+  s.buf[s.size] = c;
+  s.size += 1;
+}
+
+void x_strings_append_chars(x_strings_string& s, uint8_t const* const t,
+                            size_t si) {
+  x_strings_reserve(s, s.size + si);
+  if (x_errors_bool(x_errors_err)) { return; }
+  memcpy(s.buf + s.size, t, si);
+  s.size += si;
+}
+
+}

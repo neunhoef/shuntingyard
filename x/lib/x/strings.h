@@ -4,6 +4,7 @@
 #define X_STRINGS_H 1
 
 #include <cstdint>
+#include <stdlib.h>
 
 extern "C" {
 
@@ -27,11 +28,11 @@ void x_strings_set_ptrSize(x_strings_string& s, uint8_t const* const m, size_t l
 uint8_t x_strings_at_raw(x_strings_string& s, size_t pos);
 uint8_t x_strings_at(x_strings_string& s, size_t pos);
 
-bool x_strings_reserve(x_strings_string& s, size_t size);
+void x_strings_reserve(x_strings_string& s, size_t size);
 
-bool x_strings_append_string(x_strings_string& s, x_strings_string const& t);
-bool x_strings_append_char(x_strings_string& s, uint8_t c);
-bool x_strings_append_chars(x_strings_string& s, uint8_t const* const t, size_t si);
+void x_strings_append_string(x_strings_string& s, x_strings_string const& t);
+void x_strings_append_char(x_strings_string& s, uint8_t c);
+void x_strings_append_chars(x_strings_string& s, uint8_t const* const t, size_t si);
 
 }
 

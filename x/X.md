@@ -961,10 +961,11 @@ the row says how an argument was passed into the function, the column
 says, how the argument can be passed on to a called function:
 
     argument    <-      <->     ->
-    <-          +       -       - 
+    <-          +       -       -
     <->         +       +       (**)
-    ->          (*)     (*)     + 
+    ->          (*)     (*)     (***)
             (*) means after initialization
             (**) after destruction
+            (***) only before initialization
 
 

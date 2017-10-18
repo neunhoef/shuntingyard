@@ -4,7 +4,7 @@ This module contains the X tokenizer.
 ---
 
 namespace := /x/tokenizer;
-search := [/x/];   ## this is the default and could be omitted
+search := [/x/errors, /x/strings];
 
 ## Token types:
 
@@ -16,10 +16,12 @@ TokenType := type : enum[uint8]{
   ## From here on proper types which produce tokens:
   Open := 4;
   Close := 5;
-  Number := 6;
-  String := 7;
-  Identifier := 8;
-  Operator := 9;
+  SignedInt := 6;
+  UnsignedInt := 7;
+  Float := 8;
+  String := 9;
+  Identifier := 10;
+  Operator := 11;
 };
   
 ## The data type of a tokenizer:
@@ -30,33 +32,47 @@ tokenizer ::= type : struct[
   pos : ptr[uint8];
   row : uint;
   col : uint;
+  i   : int64;   ## valid if and only if typ = SignedInt
+  u   : uint64;  ## valid if and only if typ = UnsignedInt
+  f   : float64; ## valid if and only if typ = Float
+  s   : string;  ## valid if and only if typ in { String, Identifier, Operator }
+  c   : uint8;   ## valid if and only if typ in { Open, Close }
+  typ : TokenType;
 ];
 
 ## Constructor:
 
-init := func(t --> tokenizer, s <- ptr[uint8], l <- uint) {
+init ::= func(t --> tokenizer, s <- ptr[uint8], l <- uint) {
   t.buf := s;
   t.len := l;
   t.pos := 0;
   t.row := 1;
   t.col := 1;
+  t.typ := TokenType/None;
+  t.i   := +0;
+  t.u   := 0;
+  t.f   := 0.0;
+  init(t.s);
+  t.c   := uint8{0};
 };
 
 ## Destructor:
 
-exit := func(t <--> tokenizer) {
-  t.buf := ptr[uint8]{0u};
+exit ::= func(t <--> tokenizer) {
+  t.buf := ptr[uint8]{0};
+  t.typ := TokenType/None;
+  exit(s);
 };
 
 ## Check if there is more:
 
-done := func(t <-- tokenizer, r -> bool) {
-  r := t.pos < t.len;
+done ::= func(t <-- tokenizer, r -> bool) {
+  r := t.pos >= t.len;
 };
 
-## Determine type of next token:
+## Analyize one token and advance:
 
-nextType := func(t <-- tokenizer, r -> TokenType) {
+next ::= func(t <-- tokenizer, r -> TokenType) {
   if (t.pos >= t.len) {
     r := TokenType/None;
     return;
@@ -81,63 +97,41 @@ nextType := func(t <-- tokenizer, r -> TokenType) {
   }
 }
 
-## Get current character (used for TokenType/Open and TokenType/Close:
+## Getter current character (used for TokenType/Open and TokenType/Close:
 
-getChar ::= func(t <--> tokenizer, r -> uint8) {
-  r := t.buf[t.pos];
-  t.pos := t.pos + 1;
-}
+type := func(t <-- tokenizer, r -> TokenType) {
+  r := t.typ;
+};
 
-## Skip or get whitespace.
+get/char ::= func(t <--> tokenizer, r -> uint8) {
+  r := t.c;
+};
 
-skipWhitespace ::= func(t <--> tokenizer) {
-  ...
-}
+get/int ::= func(t <--> tokenizer, r -> int) {
+  r := t.i;
+};
 
-getWhitespace ::= func(t <--> tokenizer, r --> string) {
+get/uint ::= func(t <--> tokenizer, r -> uint) {
+  r := t.u;
+};
+
+get/float ::= func(t <--> tokenizer, r -> float64) {
+  r := t.f;
+};
+
+get/string ::= func(t <--> tokenizer, r -> string) {
+  r := t.s;
+};
+
+## Skip or get whitespace:
+
+skipWhitespace := func(t <--> tokenizer) {
   ...
 }
 
 ## Skip or get comment:
 
 skipComment ::= func(t <--> tokenizer) {
-  ...
-}
-
-getComment ::= func(t <--> tokenizer, r --> string) {
-  ...
-}
-
-## Get a number:
-
-NumberResult ::= type : struct[
-  u : uint64;
- offset(0);
-  i : int64;
- offset(0);
-  f : float64;
-  type: uint8;   ## 0 : uint64, 1 : int64, 2 : float64
-];
-
-getNumber ::= func(t <--> tokenizer, r --> NumberResult) {
-  ...
-}
-
-## Get a string:
-
-getString ::= func(t <--> tokenizer, r --> string) {
-  ...
-}
-
-## Get an identifier:
-
-getIdentifier ::= func(t <--> tokenizer, p -> ptr[uint8], l -> uint) {
-  ...
-}
-
-## Get an operator:
-
-getOperator ::= func(t <--> tokenizer, p --> ptr[uint8], l -> uint) {
   ...
 }
 

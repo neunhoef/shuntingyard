@@ -81,11 +81,11 @@ void x_errors_msg(x_errors_error& e, x_strings_string& res) {
 
 // Error codes:
 
-int32_t const x_errors_OUT_OF_BOUNDS = 1;
-uint8_t const* const x_errors_OUT_OF_BOUNDS_MSG 
+int32_t const x_errors_OUT__OF__BOUNDS = 1;
+uint8_t const* const x_errors_OUT__OF__BOUNDS__MSG 
   = (uint8_t const*) "out of bounds";
-int32_t const x_errors_ALLOCATION_FAILED = 2;
-uint8_t const* const x_errors_ALLOCATION_FAILED_MSG
+int32_t const x_errors_ALLOCATION__FAILED = 2;
+uint8_t const* const x_errors_ALLOCATION__FAILED__MSG
   = (uint8_t const*) "allocation failed";
 
 }

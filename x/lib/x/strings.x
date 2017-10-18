@@ -105,7 +105,7 @@ at ::= func(s <-- string, pos <- uint, c -> uint8) [error] {
 
 ## Reserve space:
 
-reserve ::= func(s <--> string, size <- uint, iserror -> bool) [error] {
+reserve ::= func(s <--> string, size <- uint) [error] {
   if (s.alloc < size) {
     newSize ::= 2 * s.alloc;
     if (newSize < size) {
@@ -113,12 +113,10 @@ reserve ::= func(s <--> string, size <- uint, iserror -> bool) [error] {
     }
     newbuf ::= ptr[uint8]{/C/string/realloc(s.buf, newSize)};
     if (isNull(newbuf)) {
-      set(error, errors/ALLOC_FAILED, errors/ALLOC_FAILED_MSG);
-      iserror := true;
+      set(err, errors/ALLOC_FAILED, errors/ALLOC_FAILED_MSG);
     } {
-      s.buf := newbuf;
-      s.alloc := newSize;
-      iserror := false;
+      s.buf = newbuf;
+      s.alloc = newSize;
     }
   }
 };
@@ -132,9 +130,9 @@ append/string ::= func(s <--> string, t <-- string) [error] {
 };
 
 append/char ::= func(s <--> string, c <- uint8) [error] {
-  reserve(s, s.size + 1u); if (err) { return };
+  reserve(s, s.size + 1); if (err) { return };
   s.buf[s.size] := c;
-  s.size += 1u;
+  s.size += 1;
 };
 
 append/chars ::= func(s <--> string, t <- ptr[uint8], si <- uint) [error] {

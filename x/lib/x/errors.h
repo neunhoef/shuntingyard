@@ -48,9 +48,9 @@ void x_errors_msg(x_errors_error& e, x_strings_string& res);
 
 // Error codes:
 
-extern int32_t const x_errors_OUT_OF_BOUNDS;
-extern uint8_t const* const x_errors_OUT_OF_BOUNDS_MSG;
-extern int32_t const x_errors_ALLOCATION_FAILED;
-extern uint8_t const* const x_errors_ALLOCATION_FAILED_MSG;
+extern int32_t const x_errors_OUT__OF__BOUNDS;
+extern uint8_t const* const x_errors_OUT__OF__BOUNDS__MSG;
+extern int32_t const x_errors_ALLOCATION__FAILED;
+extern uint8_t const* const x_errors_ALLOCATION__FAILED__MSG;
 
 }
