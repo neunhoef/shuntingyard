@@ -1,5 +1,8 @@
 // Translated from error.x
 
+#ifndef X_ERRORS_H
+#define X_ERRORS_H 1
+
 #include <cstdint>
 
 #include "strings.h"
@@ -54,3 +57,5 @@ extern int32_t const x_errors_ALLOCATION__FAILED;
 extern uint8_t const* const x_errors_ALLOCATION__FAILED__MSG;
 
 }
+
+#endif

@@ -7,6 +7,10 @@
 
 extern "C" {
 
+char const* x_tokenizer_names[] = {
+  "None ", "Error", "Open ", "Close", "SignI", "Unsig", "Float",
+  "Strng", "Ident", "Oper " };
+
 // Constructor:
 
 void x_tokenizer_init(x_tokenizer_tokenizer& t, uint8_t* s, size_t l) {
@@ -69,7 +73,7 @@ static void x_tokenizer_skipComment(x_tokenizer_tokenizer& t) {
   t.pos += 1;
   size_t len = t.pos - start;
   while (t.pos < t.len) {
-    if (t.buf[t.pos] != (uint8_t) '#') {
+    if (t.buf[t.pos] == (uint8_t) '#') {
       if (t.pos + len >= t.len) {
         t.pos = t.len;
         return;
@@ -286,6 +290,32 @@ static x_tokenizer_TokenType x_tokenizer_scanOperator(x_tokenizer_tokenizer& t) 
   return t.typ;
 }
 
+// Recall UTF-8:
+// 0xxxxxxx
+// 110xxxxx 10xxxxxx
+// 1110xxxx 10xxxxxx 10xxxxxx
+// 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
+// Helper to read a code point in UTF-8:
+
+static uint32_t x_tokenizer_readCodepoint(uint8_t* p) {
+  uint8_t c = *p;
+  if (c < 0b10000000) {
+    return (uint32_t) c;
+  } else if (c < 0b11100000) {
+    return ((uint32_t) (c & 0b00011111) << 6) |
+           ((uint32_t) (p[1] & 0b00111111));
+  } else if (c < 0b11110000) {
+    return ((uint32_t) (c & 0b00001111) << 12) |
+           ((uint32_t) (p[1] & 0b00111111) << 6) |
+           ((uint32_t) (p[2] & 0b00111111));
+  } else {
+    return ((uint32_t) (c & 0b00000111) << 18) |
+           ((uint32_t) (p[1] & 0b00111111) << 12) |
+           ((uint32_t) (p[2] & 0b00111111) << 7) |
+           ((uint32_t) (p[3] & 0b00111111));
+  }
+}
+
 // Helper to write out a code point:
 
 static void x_tokenizer_append_codepoint(x_strings_string& s, uint32_t cp) {
@@ -341,6 +371,7 @@ static void x_tokenizer_findStringEnd(x_tokenizer_tokenizer& t,
   while (t.pos < t.len) {
     char c = (char) t.buf[t.pos];
     if (c == '"') {
+      t.pos += 1;
       return;
     }
     if (c == '\n' || c == '\r') {
@@ -485,6 +516,7 @@ static void x_tokenizer_copyString(x_tokenizer_tokenizer& t, size_t pos) {
       }
       // If we fall through here, we simply take the backslash
     } else {
+      x_strings_append_char(t.s, t.buf[pos]);
       pos += 1;
     }
   }
@@ -507,7 +539,12 @@ static x_tokenizer_TokenType x_tokenizer_scanString(x_tokenizer_tokenizer& t) {
   x_strings_reserve(t.s, t.pos - start);
   t.s.size = 0;
   x_tokenizer_copyString(t, start);
-  t.typ = x_tokenizer_TokenType::String;
+  if (isChar) {
+    t.u = x_tokenizer_readCodepoint(x_strings_c__str(t.s));
+    t.typ = x_tokenizer_TokenType::UnsignedInt;
+  } else {
+    t.typ = x_tokenizer_TokenType::String;
+  }
   return t.typ;
 }
 

@@ -78,15 +78,15 @@ next ::= func(t <-- tokenizer, r -> TokenType) {
     return;
   } 
   c := var : uint32{t.buf[t.pos]};
-  if (c >= '0' && c <= '9') {
+  if (c >= "\c0" && c <= "\c9") {
     r := TokenType/Number;
-  } (c = '"') {
+  } (c = "\c\"") {
     r := TokenType/String;
-  } (c = '(' || c = '[' || c = '{') {
+  } (c = "\c(" || c = "\c[" || c = "\c{") {
     r := TokenType/Open;
-  } (c = ')' || c = ']' || c = '}') {
+  } (c = "\c)" || c = "\c]" || c = "\c}") {
     r := TokenType/Close;
-  } (c = '#') {
+  } (c = "\c#") {
     r := TokenType/Comment;
   } (isOp(c)) {
     r := TokenType/Operator;

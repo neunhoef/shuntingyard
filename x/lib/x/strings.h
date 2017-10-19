@@ -25,6 +25,14 @@ void x_strings_exit(x_strings_string& s);
 void x_strings_set_empty(x_strings_string& s);
 void x_strings_set_ptrSize(x_strings_string& s, uint8_t const* const m, size_t len);
 
+static inline uint8_t* x_strings_c__str(x_strings_string& s) {
+  return s.buf;
+}
+
+static inline size_t x_strings_size(x_strings_string& s) {
+  return s.size;
+}
+
 uint8_t x_strings_at_raw(x_strings_string& s, size_t pos);
 uint8_t x_strings_at(x_strings_string& s, size_t pos);
 

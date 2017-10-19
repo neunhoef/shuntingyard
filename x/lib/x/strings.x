@@ -33,12 +33,13 @@ init/allocSize ::= func(s --> string, allocSize <- uint) {
 };
 
 init/ptrSize ::= func(s --> string, cs <- ptr[uint8], len <- uint) {
-  s.buf := ptr[uint8]{/C/string/malloc(len)};
+  s.buf := ptr[uint8]{/C/string/malloc(len + 1)};
   if (isNull(s.buf)) {
     s.alloc := 0;
     s.size := 0;
   } {
     /C/string/memcpy(s.buf, cs, len);
+    s.buf[len] := uint8{0};
     s.alloc := len;
     s.size := len;
   }
@@ -74,8 +75,9 @@ set/empty := func(s <--> string) {
 }
 
 set/ptrSize := func(s <--> string, m <- ptr[uint8], len <- uint) {
-  if (s.alloc >= len && s.alloc <= 2 * len) {
+  if (s.alloc >= len+1 && s.alloc <= 2 * len) {
     /C/string/memcpy(s.buf, m, len);
+    s.buf[len] := uint8{0};
     s.size = len;
   } {
     tmp := var : ptr[uint8]{/C/stdlib/realloc(s.buf, len)};
@@ -84,11 +86,21 @@ set/ptrSize := func(s <--> string, m <- ptr[uint8], len <- uint) {
     } {
       s.buf := tmp;
       /C/string/memcpy(s.buf, m, len);
+      s.buf[len] := 0;
+      s.size = len;
     }
   }
 }
 
 ## Array access:
+
+c_str ::= func(s <-- string, r -> ptr[uint8]) {
+  r := s.buf;
+}
+
+size ::= func(s <-- string, r -> uint) {
+  r := s.size;
+}
 
 at_raw ::= func(s <-- string, pos <- uint, c -> uint8) {
   c := s.buf[pos];
@@ -106,10 +118,10 @@ at ::= func(s <-- string, pos <- uint, c -> uint8) [error] {
 ## Reserve space:
 
 reserve ::= func(s <--> string, size <- uint) [error] {
-  if (s.alloc < size) {
+  if (s.alloc < size+1) {
     newSize ::= 2 * s.alloc;
-    if (newSize < size) {
-      newSize := size;
+    if (newSize < size+1) {
+      newSize := size+1;
     }
     newbuf ::= ptr[uint8]{/C/string/realloc(s.buf, newSize)};
     if (isNull(newbuf)) {
@@ -133,11 +145,13 @@ append/char ::= func(s <--> string, c <- uint8) [error] {
   reserve(s, s.size + 1); if (err) { return };
   s.buf[s.size] := c;
   s.size += 1;
+  s.buf[s.size] := uint8{0};
 };
 
 append/chars ::= func(s <--> string, t <- ptr[uint8], si <- uint) [error] {
   reserve(s, s.size + si); if (err) { return };
   /C/string/memcpy(s.buf + s.size, t, si);
   s.size += si;
+  s.buf[s.size] := uint8{0};
 };
 

@@ -25,6 +25,12 @@ enum class x_tokenizer_TokenType : uint8_t {
   Operator = 9
 };
 
+extern char const* x_tokenizer_names[];
+
+static inline char const* x_tokenizer_name(x_tokenizer_TokenType tt) {
+  return x_tokenizer_names[(uint8_t) tt];
+}
+
 // The data type of a tokenizer:
 
 struct x_tokenizer_tokenizer {
