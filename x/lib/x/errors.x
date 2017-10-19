@@ -3,7 +3,7 @@
 This module contains the fundamental definitions for the error handling
 in X. The rest of the support is in interpreter and compiler in the form
 of a thread local, static and global variable `error` of type `error`
----
+#---#
 
 namespace := /x/errors;
 search := [/x/strings];

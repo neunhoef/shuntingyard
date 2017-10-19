@@ -1,7 +1,7 @@
 #---# string.x - Strings
 This library implements strings as UTF-8 byte sequences. It underpins
 the builtin type /x/string.
----
+#---#
 
 namespace := /x;
 search := [/x/errors];

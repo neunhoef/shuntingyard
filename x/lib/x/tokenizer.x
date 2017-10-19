@@ -1,7 +1,7 @@
 #---# tokenizer.x - split a textual input into tokens
 
 This module contains the X tokenizer.
----
+#---#
 
 namespace := /x/tokenizer;
 search := [/x/errors, /x/strings];
@@ -29,7 +29,7 @@ TokenType := type : enum[uint8]{
 tokenizer ::= type : struct[
   buf : ptr[uint8];
   len : uint;
-  pos : ptr[uint8];
+  pos : uint;
   row : uint;
   col : uint;
   i   : int64;   ## valid if and only if typ = SignedInt
@@ -61,7 +61,7 @@ init ::= func(t --> tokenizer, s <- ptr[uint8], l <- uint) {
 exit ::= func(t <--> tokenizer) {
   t.buf := ptr[uint8]{0};
   t.typ := TokenType/None;
-  exit(s);
+  exit(t.s);
 };
 
 ## Check if there is more:

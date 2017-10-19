@@ -251,8 +251,8 @@ out the canonical representation always returns the same expression.
 The tokenizer simply scans the source in a linear fashion and uses a single
 character lookahead method to find token boundaries and types.
 
-A number is detected by a decimal digit or a - follewed by one. Here are
-the rules to parse a number (TODO: explain better)
+A number is detected by a decimal digit or a sign (+ or -) follewed by one.
+Here are the rules to parse a number (TODO: explain better)
 
     +0..9 positive signed
     -0..9 negative signed
@@ -273,7 +273,7 @@ One can express a constant of a different type by using the notation
 
     uint32{17}
 
-for example.
+for example. Integer overflow whilst scanning makes the value equal to 0.
 
 A string constant is recognized by the character `"`. Here are the
 rules to parse a string (TODO: explain better)
@@ -288,24 +288,24 @@ rules to parse a string (TODO: explain better)
     \uXXXX is a single unicode character
     \UXXXXXXXX is a single unicode character
     \"    is a double quote
-    \(xyz) where xyz is any character sequence without ) and control 
+    \|xyz| where xyz is any character sequence without | and control 
            characters switches to raw mode, in which characters (including
            control characters and line breaks) are simply copied until
-           the sequence xyz is found again
-    \c     as first letters in the string switches to character mode,
-           only a single Unicode code point is allowed to follow, a
-           closing character " must follow after that and the result
-           is an unsigned number of type uint32.
+           the sequence |xyz| is found again
+    \c     anywhere in the string switches to character mode,
+           the result of the token is not a string token but rather
+           an uint64 (less than 2^32) that is the value of the first
+           code point in the string result
 
 **Examples**:
 
     "abc\"def"
-    "\(%%%)This is a multi-line
+    "\|%%%|This is a multi-line
     text and is directly copied as is
     to the string constant, it can contain
     special characters like " and \ and everything,
     it is terminated by the sequence between the brackets.
-    %%%
+    |%%%|"
     "\cA" is the same as uint32{65}
 
 
@@ -324,7 +324,7 @@ occurrence of the sequence between the `#` is removed.
 
     #%%%# This is the start of a multi line comment,
     everything up to and including the next occurrence of the sequence
-    between ## and # is removed %%%
+    between ## (including the ##) and # is removed #%%%#
 
     #...# This is also a start
     and continues until the next occurrence of three dots is found
@@ -348,6 +348,7 @@ not one of the following cases:
 
   - a slash `/` followed by a letter or underscore
   - a minus `-` followed by a decimal digit
+  - a plus `+` followed by a decimal digit
 
 Note that
 

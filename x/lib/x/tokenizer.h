@@ -14,25 +14,23 @@ extern "C" {
 
 enum class x_tokenizer_TokenType : uint8_t {
   None = 0,
-  Comment = 1,
-  Whitespace = 2,
-  Error = 3,
-  Open = 4,
-  Close = 5,
-  SignedInt = 6,
-  UnsignedInt = 7,
-  Float = 8,
-  String = 9,
-  Identifier = 10,
-  Operator = 11
+  Error = 1,
+  Open = 2,
+  Close = 3,
+  SignedInt = 4,
+  UnsignedInt = 5,
+  Float = 6,
+  String = 7,
+  Identifier = 8,
+  Operator = 9
 };
-  
+
 // The data type of a tokenizer:
 
 struct x_tokenizer_tokenizer {
   uint8_t* buf;
   size_t   len;
-  uint8_t* pos;
+  size_t   pos;
   size_t   row;
   size_t   col;
   int64_t  i;   // valid if and only if typ = SignedInt
@@ -87,13 +85,28 @@ static inline void x_tokenizer_get_string(x_tokenizer_tokenizer& t,
   x_strings_init_copy(r, t.s);
 };
 
-// Skip or get whitespace:
+static inline bool x_tokenizer_isOp(uint8_t cc) {
+  char c = (char) cc;
+  return c == '!' || c == '$' || c == '%' || c == '&' || c == '\'' ||
+         c == '*' || c == '+' || c == ',' || c == '-' || c == '.' ||
+         c == '/' || c == ':' || c == ';' || c == '<' || c == '=' ||
+         c == '>' || c == '?' || c == '@' || c == '\\' || c == '^' ||
+         c == '`' || c == '|' || c == '~';
+}
 
-void x_tokenizer_skipWhitespace(x_tokenizer_tokenizer& t);
+static inline bool x_tokenizer_isLetter(uint8_t c) {
+  return (c >= (uint8_t) 'a' && c <= (uint8_t) 'z') ||
+         (c >= (uint8_t) 'A' && c <= (uint8_t) 'Z') || c == (uint8_t) '_';
+}
 
-// Skip or get comment:
+static inline bool x_tokenizer_isDigit(uint8_t c) {
+  return c >= (uint8_t) '0' && c <= (uint8_t) '9';
+}
 
-void x_tokenizer_skipComment(x_tokenizer_tokenizer& t);
+static inline bool x_tokenizer_isWhitespace(uint8_t cc) {
+  char c = (char) cc;
+  return c == ' ' || c == '\t' || c == '\r' || c == '\n';
+}
 
 }
 
