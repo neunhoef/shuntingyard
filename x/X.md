@@ -40,9 +40,10 @@ Everything is an expression:
 The syntax allows
 
   - atoms (numbers, strings, identifiers)
-  - function calls with 3 different sets of brackets and multiple pairs
-    in one call, each containing arbitrary subexpressions
+  - function calls
   - infix operations
+  - arbitrary UTF-8 strings embedded in the source
+  - comments
 
 There is a very simple shunting yard like parser to parse source text
 into an expression tree.
@@ -87,11 +88,12 @@ An expression is either an atom:
 
         !$%&'*+,-./:;<=>?@\^`|~
 
-Note that the tokenizer will recognize - directly followed by a digit as a
-number token and not as a token `-` followed by a number token!
+Note that the tokenizer will recognize + or - directly followed by a
+digit as a number token and not as a token `-` followed by a number
+token!
 
 Note that `#` is the comment character and is thus not available for
-identifiers.
+identifiers and operators.
 
 Note that `/` is a valid identifier character and thus `a/b` is a single
 token. For division one has to write `a / b` instead.
@@ -174,7 +176,7 @@ and there are three possibilities:
 
   1. The name is empty, in this case the representation is simply a pair
      of brackets of the right type around the canonical representation of
-     the single subexpression that is allowed by rule 1. above
+     the single subexpression that is allowed by Rule 1 above
   2. The name is an operator, in this case the canonical representation 
      is a (potentially bracketed) infix expression of the subexpressions.
   3. The name is an identifier, in this case the canonical representation
@@ -358,7 +360,7 @@ are three tokens, whereas
 
     a_b
 
-is one token, an identifier and
+is one token, an identifier, and
 
     a-2
 
@@ -509,9 +511,17 @@ Smart pointer with automatic deletion but no reference counting:
 
     box[TYPE]
 
-Smart pointer with automatic reference couting:
+Smart pointer with automatic reference counting:
 
     ref[TYPE]
+
+needs to point to a
+
+    refcounted[TYPE]
+
+Arrays:
+
+    array[SIZE][TYPE]
 
 Slices with a pointer and a length:
 
@@ -521,8 +531,11 @@ Vector with a pointer, a length and a capacity with automatic deletion:
 
     vector[TYPE]        holds allocation
 
-
     map[TYPE -> TYPE]
+
+**Algebraic types**:
+
+    variant[TYPENAME | TYPENAME | TYPENAME | ... | TYPENAME]
 
 **Function types (by means of example)**:
 
@@ -535,6 +548,9 @@ non-empty expressions of the following shape:
     IDEN <- TYPE, or
     IDEN -> TYPE, or
     IDEN <-> TYPE, or
+    IDEN <-- TYPE, or
+    IDEN --> TYPE, or
+    IDEN <--> TYPE
 
 **EBF**:
 
@@ -544,9 +560,18 @@ non-empty expressions of the following shape:
     ARG :=   IDEN "<-" TYPE
            | IDEN "->" TYPE
            | IDEN "<->" TYPE
+           | IDEN "<--" TYPE
+           | IDEN "-->" TYPE
+           | IDEN "<-->" TYPE
 
 Note that for a function type there may not be a curly brace expression,
 because this denotes the body of a function definition.
+
+Interface types:
+
+    interface(T)[
+       ...
+    ]
 
 ## Data Literals
 
