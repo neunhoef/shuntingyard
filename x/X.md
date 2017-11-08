@@ -994,4 +994,32 @@ says, how the argument can be passed on to a called function:
             (**) after destruction
             (***) only before initialization
 
+## Dictionary C <-> X
+
+    int* p;                             p := var : ptr[int];
+    p = q;                              p := q;
+    i = *p;                             i := p[0];
+    Pos* x;                             x := var : ptr[Pos];
+
+    struct Pos {                        Pos := type : struct[
+      double x;                           x : float64;
+      double y;                           y : float64;
+    };                                  ];
+    Pos* p;                             p := var : ptr[Pos];
+    p->x                                p^x
+    p = q;                              p := q;
+    *p                                  p[0]
+    Pos pos;                            pos := var : Pos;
+    p = &pos;                           p := addr(pos);
+    Pos** q;                            q := var : ptr[ptr[Pos]];
+    **q                                 q[0][0]
+    (*(q[12])).x or q[12]->x            q[12][0].x or q[12]^x
+    q[13] = &pos;                       q[13] := addr(pos);
+    (**q).x  or  (*q)->x                q^^x
+    Pos*** r;                           r := var : ptr[ptr[ptr[Pos]]];
+    ***r                                r[0][0][0]
+    (***q).x   or (**q)->x              r[0][0][0].x  or  q[0][0]^x
+
+
+
 
