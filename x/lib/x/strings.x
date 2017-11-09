@@ -7,11 +7,11 @@ namespace := /x;
 search := [/x/errors];
 
 string ::= type :
-  struct[
+  struct [
     buf   : ptr[uint8];
     alloc : uint;
     size  : uint;
-  ]
+  ];
 );
 
 ## Constructors:
@@ -131,6 +131,16 @@ reserve ::= func(s <--> string, size <- uint) [error] {
       s.alloc = newSize;
     }
   }
+};
+
+## Comparison:
+
+equals ::= func(s <-- string, t <-- string) {
+  
+};
+
+equals/c_str ::= func(s <-- string, t <- ptr[uint8], size <- uint) {
+  
 };
 
 ## Appending:

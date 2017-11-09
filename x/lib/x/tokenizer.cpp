@@ -11,28 +11,35 @@ char const* x_tokenizer_names[] = {
   "None ", "Error", "Open ", "Close", "SignI", "Unsig", "Float",
   "Strng", "Ident", "Oper " };
 
-// Constructor:
+// Constructors:
 
-void x_tokenizer_init(x_tokenizer_tokenizer& t, uint8_t* s, size_t l) {
+void x_tokenizer_init_token(x_tokenizer_token& t) {
+  t.i = 0;
+  t.pos = 0;
+  t.typ = x_tokenizer_TokenType::None;
+}
+
+void x_tokenizer_init_tokenizer(x_tokenizer_tokenizer& t, uint8_t* s, size_t l) {
   t.buf = s;
   t.len = l;
   t.pos = 0;
-  t.row = 1;
-  t.col = 1;
-  t.typ = x_tokenizer_TokenType::None;
-  t.i   = 0;
-  t.u   = 0;
-  t.f   = 0.0;
-  x_strings_init_empty(t.s);
-  t.c   = 0;
+  x_tokenizer_init_token(t.tok);
 }
 
-// Destructor:
+// Destructors:
 
-void x_tokenizer_exit(x_tokenizer_tokenizer& t) {
-  t.buf = nullptr;
+void x_tokenizer_exit_token(x_tokenizer_token& t) {
+  if (t.typ == x_tokenizer_TokenType::String ||
+      t.typ == x_tokenizer_TokenType::Identifier ||
+      t.typ == x_tokenizer_TokenType::Operator) {
+    x_strings_exit(t.s);
+  }
   t.typ = x_tokenizer_TokenType::None;
-  x_strings_exit(t.s);
+}
+
+void x_tokenizer_exit_tokenizer(x_tokenizer_tokenizer& t) {
+  t.buf = nullptr;
+  x_tokenizer_exit_token(t.tok);
 }
 
 // Check if there is more:
@@ -212,8 +219,8 @@ static x_tokenizer_TokenType x_tokenizer_scanFloat(x_tokenizer_tokenizer& t,
       dbase = 10.0;
       t.pos += 3;
     } else {
-      t.typ = x_tokenizer_TokenType::Error;
-      return t.typ;
+      t.tok.typ = x_tokenizer_TokenType::Error;
+      return t.tok.typ;
     }
     // Now read the exponent:
     if (t.pos < t.len) {
@@ -226,20 +233,20 @@ static x_tokenizer_TokenType x_tokenizer_scanFloat(x_tokenizer_tokenizer& t,
         bool expOverflow;
         uint64_t e = x_tokenizer_scanUInt64(t, base, expOverflow);
         if (expOverflow || e >= 1024) {
-          t.typ = x_tokenizer_TokenType::Error;
-          return t.typ;
+          t.tok.typ = x_tokenizer_TokenType::Error;
+          return t.tok.typ;
         }
         v *= pow(dbase, expMinus ? -(double)e : (double) e);
       }
     }
   }
   if (overflow) {
-    t.typ = x_tokenizer_TokenType::Error;
-    return t.typ;
+    t.tok.typ = x_tokenizer_TokenType::Error;
+    return t.tok.typ;
   }
-  t.typ = x_tokenizer_TokenType::Float;
-  t.f = minus ? -v : v;
-  return t.typ;
+  t.tok.typ = x_tokenizer_TokenType::Float;
+  t.tok.f = minus ? -v : v;
+  return t.tok.typ;
 }
 
 // Scan a signed number (or float) , only called when standing on '-' or
@@ -253,12 +260,12 @@ static x_tokenizer_TokenType x_tokenizer_scanSigned(x_tokenizer_tokenizer& t) {
   uint64_t v = x_tokenizer_scanUInt64(t, base, overflow);
   if (t.pos >= t.len || t.buf[t.pos] != (uint8_t) '.') {
     if (overflow || (minus && v >= 0x8000000000000000ull)) {
-      t.typ = x_tokenizer_TokenType::Error;
+      t.tok.typ = x_tokenizer_TokenType::Error;
     } else {
-      t.i = minus ? -(int64_t) v : (int64_t) v;;
-      t.typ = x_tokenizer_TokenType::SignedInt;
+      t.tok.i = minus ? -(int64_t) v : (int64_t) v;;
+      t.tok.typ = x_tokenizer_TokenType::SignedInt;
     }
-    return t.typ;
+    return t.tok.typ;
   }
   return x_tokenizer_scanFloat(t, v, base, overflow, minus);
 }
@@ -270,10 +277,10 @@ static x_tokenizer_TokenType x_tokenizer_scanUnsigned(x_tokenizer_tokenizer& t) 
   bool overflow = false;
   uint64_t v = x_tokenizer_scanUInt64(t, base, overflow);
   if (t.pos >= t.len || t.buf[t.pos] != (uint8_t) '.') {
-    t.u = v;
-    t.typ = overflow ? x_tokenizer_TokenType::Error
-                     : x_tokenizer_TokenType::UnsignedInt;
-    return t.typ;
+    t.tok.u = v;
+    t.tok.typ = overflow ? x_tokenizer_TokenType::Error
+                         : x_tokenizer_TokenType::UnsignedInt;
+    return t.tok.typ;
   }
   return x_tokenizer_scanFloat(t, v, base, overflow, false);
 }
@@ -285,9 +292,9 @@ static x_tokenizer_TokenType x_tokenizer_scanOperator(x_tokenizer_tokenizer& t) 
   do {
     t.pos += 1;
   } while (t.pos < t.len && x_tokenizer_isOp(t.buf[t.pos]));
-  x_strings_set_ptrSize(t.s, t.buf + start, t.pos - start);
-  t.typ = x_tokenizer_TokenType::Operator;
-  return t.typ;
+  x_strings_set_ptrSize(t.tok.s, t.buf + start, t.pos - start);
+  t.tok.typ = x_tokenizer_TokenType::Operator;
+  return t.tok.typ;
 }
 
 // Recall UTF-8:
@@ -459,36 +466,36 @@ static void x_tokenizer_copyString(x_tokenizer_tokenizer& t, size_t pos) {
       pos += 1;
       c = (char) t.buf[pos];
       if (c == 't') {
-        x_strings_append_char(t.s, (uint8_t) '\t');
+        x_strings_append_char(t.tok.s, (uint8_t) '\t');
         pos += 1;
       } else if (c == '\\') {
-        x_strings_append_char(t.s, (uint8_t) '\\');
+        x_strings_append_char(t.tok.s, (uint8_t) '\\');
         pos += 1;
       } else if (c == 'n') {
-        x_strings_append_char(t.s, (uint8_t) '\n');
+        x_strings_append_char(t.tok.s, (uint8_t) '\n');
         pos += 1;
       } else if (c == 'r') {
-        x_strings_append_char(t.s, (uint8_t) '\n');
+        x_strings_append_char(t.tok.s, (uint8_t) '\n');
         pos += 1;
       } else if (c == '"') {
-        x_strings_append_char(t.s, (uint8_t) '"');
+        x_strings_append_char(t.tok.s, (uint8_t) '"');
         pos += 1;
       } else if (c == 'c') {
         pos += 1;
       } else if (c == 'x') {
         pos += 1;
         uint8_t x = (uint8_t) x_tokenizer_readHex(t.buf + pos, 2);
-        x_strings_append_char(t.s, x);
+        x_strings_append_char(t.tok.s, x);
         pos += 2;
       } else if (c == 'u') {
         pos += 1;
         uint32_t x = (uint32_t) x_tokenizer_readHex(t.buf + pos, 4);
-        x_tokenizer_append_codepoint(t.s, x);
+        x_tokenizer_append_codepoint(t.tok.s, x);
         pos += 4;
       } else if (c == 'U') {
         pos += 1;
         uint64_t x = x_tokenizer_readHex(t.buf + pos, 8);
-        x_tokenizer_append_codepoint(t.s, x);
+        x_tokenizer_append_codepoint(t.tok.s, x);
         pos += 8;
       } if (c == '|') {
         size_t rawStart = pos;
@@ -506,7 +513,7 @@ static void x_tokenizer_copyString(x_tokenizer_tokenizer& t, size_t pos) {
             }
             if (memcmp(t.buf + pos, t.buf + rawStart, rawLen) == 0) {
               pos += rawLen;
-              x_strings_append_chars(t.s, t.buf + rawStart + rawLen,
+              x_strings_append_chars(t.tok.s, t.buf + rawStart + rawLen,
                                           pos - (rawStart + rawLen));
               break;
             }
@@ -516,7 +523,7 @@ static void x_tokenizer_copyString(x_tokenizer_tokenizer& t, size_t pos) {
       }
       // If we fall through here, we simply take the backslash
     } else {
-      x_strings_append_char(t.s, t.buf[pos]);
+      x_strings_append_char(t.tok.s, t.buf[pos]);
       pos += 1;
     }
   }
@@ -531,21 +538,21 @@ static x_tokenizer_TokenType x_tokenizer_scanString(x_tokenizer_tokenizer& t) {
   bool isChar;
   x_tokenizer_findStringEnd(t, error, isChar);
   if (error) {
-    t.typ = x_tokenizer_TokenType::Error;
-    return t.typ;
+    t.tok.typ = x_tokenizer_TokenType::Error;
+    return t.tok.typ;
   }
   // Now we have found the end of the string, thus we have an upper bound
   // for the size:
-  x_strings_reserve(t.s, t.pos - start);
-  t.s.size = 0;
+  x_strings_reserve(t.tok.s, t.pos - start);
+  t.tok.s.size = 0;
   x_tokenizer_copyString(t, start);
   if (isChar) {
-    t.u = x_tokenizer_readCodepoint(x_strings_c__str(t.s));
-    t.typ = x_tokenizer_TokenType::UnsignedInt;
+    t.tok.u = x_tokenizer_readCodepoint(x_strings_c__str(t.tok.s));
+    t.tok.typ = x_tokenizer_TokenType::UnsignedInt;
   } else {
-    t.typ = x_tokenizer_TokenType::String;
+    t.tok.typ = x_tokenizer_TokenType::String;
   }
-  return t.typ;
+  return t.tok.typ;
 }
 
 // Scan an identifier called when standing on a letter, underscore or /
@@ -557,9 +564,9 @@ static x_tokenizer_TokenType x_tokenizer_scanIdentifier(x_tokenizer_tokenizer& t
     t.pos += 1;
   } while (t.pos < t.len && (x_tokenizer_isLetter(t.buf[t.pos]) ||
                              t.buf[t.pos] == (uint8_t) '/'));
-  x_strings_set_ptrSize(t.s, t.buf + start, t.pos - start);
-  t.typ = x_tokenizer_TokenType::Identifier;
-  return t.typ;
+  x_strings_set_ptrSize(t.tok.s, t.buf + start, t.pos - start);
+  t.tok.typ = x_tokenizer_TokenType::Identifier;
+  return t.tok.typ;
 }
 
 // Analyize one token and advance:
@@ -567,8 +574,8 @@ static x_tokenizer_TokenType x_tokenizer_scanIdentifier(x_tokenizer_tokenizer& t
 x_tokenizer_TokenType x_tokenizer_next(x_tokenizer_tokenizer& t) {
   while (true) {
     if (t.pos >= t.len) {
-      t.typ = x_tokenizer_TokenType::None;
-      return t.typ;
+      t.tok.typ = x_tokenizer_TokenType::None;
+      return t.tok.typ;
     } 
     uint8_t c = t.buf[t.pos];
     switch ((char) c) {
@@ -587,15 +594,15 @@ x_tokenizer_TokenType x_tokenizer_next(x_tokenizer_tokenizer& t) {
       case '5': case '6': case '7': case '8': case '9':
         return x_tokenizer_scanUnsigned(t);
       case '(': case '[': case '{':
-        t.c = c;
-        t.typ = x_tokenizer_TokenType::Open;
+        t.tok.c = c;
+        t.tok.typ = x_tokenizer_TokenType::Open;
         t.pos += 1;
-        return t.typ;
+        return t.tok.typ;
       case ')': case ']': case '}':
-        t.c = c;
-        t.typ = x_tokenizer_TokenType::Close;
+        t.tok.c = c;
+        t.tok.typ = x_tokenizer_TokenType::Close;
         t.pos += 1;
-        return t.typ;
+        return t.tok.typ;
       case '"':
         return x_tokenizer_scanString(t);
       case ' ': case '\t': case '\n': case '\r':
@@ -610,9 +617,9 @@ x_tokenizer_TokenType x_tokenizer_next(x_tokenizer_tokenizer& t) {
         } else if (x_tokenizer_isOp(c)) {
           return x_tokenizer_scanOperator(t);
         } else {
-          t.typ = x_tokenizer_TokenType::Error;
+          t.tok.typ = x_tokenizer_TokenType::Error;
           x_tokenizer_skipUTF8CodePoint(t);
-          return t.typ;
+          return t.tok.typ;
         }
     }
   }

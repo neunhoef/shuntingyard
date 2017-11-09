@@ -110,7 +110,7 @@ The name can be
     function expression
   - an **operator** (must be non-empty), in which case it is an infix
     operator expression
-  - **empty**, in which case it is merely used for the brackting
+  - **empty**, in which case it is merely used for the bracketing
 
 There are two rules: 
 
@@ -418,22 +418,22 @@ rules.
 
 ## Operator precedence
 
-    .
+    .                                           140
 
-    ^              right assoc
-    * / %          left assoc
-    + -            left assoc
-    << >>          left assoc
-    | &            left assoc
-    < > <= >= =    left assoc
+    ^ ^^ ^^^                   right assoc      130
+    * / %                      left assoc       120
+    + -                        left assoc       110
+    | &                        left assoc       100
+    << >>                      left assoc       90
+    < > <= >= = !=             left assoc       80
+    ..                         left assoc       70
+    || &&                      left assoc       60
 
-    || &&          left assoc
-
-    -> <- <-> --> <-- <-->
-    :
-    ,
-    := ::=         left assoc
-    ;
+    -> <- <-> --> <-- <-->     left assoc       50
+    : ::                       left assoc       40
+    ,                                           30
+    := ::=                     left assoc       20
+    ;                                           10
 
 
 ## Types and values
@@ -745,20 +745,20 @@ Local variables are declared as follows:
     u := var : SomeObject;       ## Default init() is called and must exist
 
 Local variables are automatically destructed when going out of scope
-with `destruct` being called on them.
+with `exit` being called on them.
 
-For a type T, `destruct` always has this signature:
+For a type T, `exit` always has this signature:
 
-    destruct(this <- ptr[T])
+    destruct(this <-- ptr[T])
 
-Each constructor `construct`for a type T has as first argument a
-`ptr[T]`, usually called `this`. This type (and possibly others
+Each constructor `init`for a type T has as first argument a
+`--> T`, usually called `this`. This type (and possibly others
 following) decides which constructor to take.
 
-Global variables are done in the same way. DO WE ALLOW INITIALIZERS
-HERE? AND IF SO, IN WHICH ORDER ARE THEY CALLED?
+Global variables are done in the same way. For initialization order see
+below.
 
-Constants are done similarly:
+Constants are done similarly (must always be initialized):
 
     c := const : float64{1.0};
 
@@ -902,43 +902,46 @@ the allocation of the object it is pointing to.
 
 Only the destructor is different, it automatically calls the destructor
 of the object being pointed to, and frees the allocation.
+
 ### Reference counting pointers: `ref[T]`
 
-This is similar to a `shard_ptr` in C++, it is a pointer that guards
+This is similar to a `shared_ptr` in C++, it is a pointer that guards
 the allocation of the object it is pointing to. It does so in a
 multi-threaded way using an atomic uint reference counter in the first
-few bytes of the object pointed to.
+few bytes of the object pointed to. Therefore, the type T *must*
+actually be refcounted[S] for some type S, which adds the atomic uint
+in front of the object.
 
 
 ## Access to struct components
 
 **Rule**: There are public and private components, a private component
-can only be accessed from a function which receives the variable as
-input/output, or in a struct literal when building an object..
+can only be accessed from a function which receives the variable with
+the long arrow notation (see below), or in construction using a struct
+literal. A public component is declared with two :: characters instead
+of one.
 
-Example:
+Examples:
 
     T := type : struct[
       x : int64;
-      y : int64;
+      y :: int64;
     ];
-    { in, out,  } x { 
-    C: call by value, call by ptr reference, call by const ptr reference
-    cons := func(t(out) : T
-    cons := func(t <-> T, xx <- int64, yy <- int64) {
-      t.x := xx;   ## allowed because of input/output parameter
-      t.y := yy;
+
+    init := func(t --> T, xx <- int64, yy <- int64) {
+      t.x := xx;   ## allowed because of long arrow for t
+      t.y := yy;   ## allowed also because of public y
     }
 
-    T t
-    T& t
-    T const&
+    b := func(t <--> T) {
+      # Access allowed because of long arrow
+    }
 
-    b := func(t(inout) : T)
     a := func() {
       A := var : T{x := 1, y := 2};   ## allowed because of struct literal
       B := var : T{cons(3, 4)};       ## allowed because of constructor
       A.y := 12;                      ## allowed because of public
+    }
 
 A function argument can be an input, an output, or a reference, which is
 denoted by
@@ -947,12 +950,12 @@ denoted by
     NAME -> TYPE          for an output argument
     NAME <-> TYPE         for a reference argument
 
-Inputs are generally immutable, output arguments count as uninitialized
-but can be written to. Reference arguments count as initialized and
-can be modified. If the TYPE is a struct type, then the above notation
-does not allow the function to inspect or modify the member variables.
-If the function shall have access to the member values, one has to write
-two minus signs as in
+Inputs are immutable, output arguments count as uninitialized but can
+be written to. Reference arguments count as initialized and can be
+modified. If the TYPE is a struct type, then the above notation does not
+allow the function to inspect or modify the private member variables. If
+the function shall have access to the member values, one has to write
+two minus signs as in (long arrow notation)
 
     NAME <-- TYPE         to give the function read access to members
     NAME --> TYPE         to give the function write access to members
@@ -968,19 +971,24 @@ the first output argument (here the type is `User`):
 
     init  ::= func(u --> User, name <- string, firstName <- string)
 
-A destructor is called `dest` and has the type it is destructing as
+A destructor is called `exit` and has the type it is destructing as
 the only argument which is a reference:
 
     exit := func(u <--> User);
 
 An allocator for a type `User` has one of the following two signatures:
 
-    alloc := func(u -> ptr[User]);
-    alloc := func(u -> ptr[User], nr <- uint);     (for arrays)
+    alloc/single := func(u -> ptr[User]);
+    alloc/array := func(u -> ptr[User], nr <- uint);     (for arrays)
+
+If not declared, a default allocator is automatically generated using
+malloc.
 
 A free for a type `User` has the following signature:
 
     free := func(u <- ptr[User]);
+
+It is automatically generated by the compiler unless one defines it.
 
 Here is a table showing how arguments of a function can be passed on,
 the row says how an argument was passed into the function, the column
@@ -1021,5 +1029,24 @@ says, how the argument can be passed on to a called function:
     (***q).x   or (**q)->x              r[0][0][0].x  or  q[0][0]^x
 
 
+## Initialization order of global variables
 
+Each namespace can declare that its initialization ought to happen
+after some other namespace as follows:
 
+    namespace := /a/b/c;
+
+    initizalize_after(/a/b/d);
+    initizalize_after(/e);
+
+The compiler generates an initialization function for each such
+namespace and a registration function. At startup all registration
+functions will be executed, then a correct order of initialization
+is determined respecting all the `initialize_after` statements and
+if this does not work the program is terminated.
+
+Otherwise, the initialization functions are executed one after another
+in the determined order.
+
+INVESTIGATION: How well does this plan play with the linker on various
+platforms???

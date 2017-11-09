@@ -25,7 +25,7 @@ ExprNode := type(
       s : float(32),
       d : float(64),
       p : ptr[niltype]
-    ],
+    ];
     bra : BracketType;
     sub : vector[ExprNode]
   ]);

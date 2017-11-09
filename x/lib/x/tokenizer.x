@@ -24,44 +24,59 @@ TokenType := type : enum[uint8]{
   Operator := 11;
 };
   
+## The data type of a token:
+
+token ::= type : struct[
+  offset(0)[
+    i :: int64;   ## valid if and only if typ = SignedInt
+    u :: uint64;  ## valid if and only if typ = UnsignedInt
+    f :: float64; ## valid if and only if typ = Float
+    c :: uint8;   ## valid if and only if typ in the set { Open, Close }
+    s :: string;  ## valid if and only if typ in the set
+                  ## { String, Identifier, Operator }
+  ];
+  pos :: uint;    ## position in the tokenized text
+  typ :: TokenType;
+];
+
 ## The data type of a tokenizer:
 
 tokenizer ::= type : struct[
   buf : ptr[uint8];
   len : uint;
   pos : uint;
-  row : uint;
-  col : uint;
-  i   : int64;   ## valid if and only if typ = SignedInt
-  u   : uint64;  ## valid if and only if typ = UnsignedInt
-  f   : float64; ## valid if and only if typ = Float
-  s   : string;  ## valid if and only if typ in { String, Identifier, Operator }
-  c   : uint8;   ## valid if and only if typ in { Open, Close }
-  typ : TokenType;
+  tok :: token;
 ];
 
-## Constructor:
+## Constructors:
 
-init ::= func(t --> tokenizer, s <- ptr[uint8], l <- uint) {
+init/token ::= func(t --> token) {
+  t.i := 0;
+  t.pos := 0;
+  t.typ := TokenType/None;
+}
+
+init/tokenizer ::= func(t --> tokenizer, s <- ptr[uint8], l <- uint) {
   t.buf := s;
   t.len := l;
   t.pos := 0;
-  t.row := 1;
-  t.col := 1;
-  t.typ := TokenType/None;
-  t.i   := +0;
-  t.u   := 0;
-  t.f   := 0.0;
-  init(t.s);
-  t.c   := uint8{0};
+  init(t.tok);
 };
 
-## Destructor:
+## Destructors:
 
-exit ::= func(t <--> tokenizer) {
-  t.buf := ptr[uint8]{0};
+exit/token ::= func(t <--> token) {
+  if (t.typ = TokenType/String ||
+      t.typ = TokenType/Identifier ||
+      t.typ = TokenType/Operator) {
+    exit(t.s);
+  }
   t.typ := TokenType/None;
-  exit(t.s);
+}
+
+exit/tokenizer ::= func(t <--> tokenizer) {
+  t.buf := ptr[uint8]{0};
+  exit(t.tok);
 };
 
 ## Check if there is more:
@@ -97,32 +112,6 @@ next ::= func(t <-- tokenizer, r -> TokenType) {
   }
 }
 
-## Getter current character (used for TokenType/Open and TokenType/Close:
-
-type := func(t <-- tokenizer, r -> TokenType) {
-  r := t.typ;
-};
-
-get/char ::= func(t <--> tokenizer, r -> uint8) {
-  r := t.c;
-};
-
-get/int ::= func(t <--> tokenizer, r -> int) {
-  r := t.i;
-};
-
-get/uint ::= func(t <--> tokenizer, r -> uint) {
-  r := t.u;
-};
-
-get/float ::= func(t <--> tokenizer, r -> float64) {
-  r := t.f;
-};
-
-get/string ::= func(t <--> tokenizer, r -> string) {
-  r := t.s;
-};
-
 ## Skip or get whitespace:
 
 skipWhitespace := func(t <--> tokenizer) {
@@ -135,3 +124,9 @@ skipComment ::= func(t <--> tokenizer) {
   ...
 }
 
+## Setters:
+
+set/int ::= func(t <--> token, i <- int64) {
+  if (t.typ = TokenType ...
+  t.typ = TokenType/SignedInt;
+  t.i = i;
