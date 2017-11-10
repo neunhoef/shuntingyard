@@ -5,7 +5,7 @@
 
 #include <cstdint>
 
-#include <strings.h>
+#include "strings.h"
 
 extern "C" {
 
