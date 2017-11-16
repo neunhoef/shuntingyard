@@ -37,6 +37,10 @@ void x_strings_init_ptrSize(x_strings_string& s, uint8_t const* const cs, size_t
   }
 }
 
+void x_strings_init_string(x_strings_string& s, x_strings_string const& t) {
+  x_strings_init_ptrSize(s, t.buf, t.size);
+}
+
 void x_strings_init_cstring(x_strings_string& s, uint8_t const* const cs) {
   size_t len = strlen((char*) cs);
   x_strings_init_ptrSize(s, cs, len);

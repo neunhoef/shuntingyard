@@ -23,7 +23,10 @@ void x_strings_init_copy(x_strings_string& s, x_strings_string& t);
 void x_strings_exit(x_strings_string& s);
 
 void x_strings_set_empty(x_strings_string& s);
+
 void x_strings_set_ptrSize(x_strings_string& s, uint8_t const* const m, size_t len);
+
+void x_strings_set_string(x_strings_string& s, x_strings_string const&t);
 
 static inline uint8_t* x_strings_c__str(x_strings_string& s) {
   return s.buf;

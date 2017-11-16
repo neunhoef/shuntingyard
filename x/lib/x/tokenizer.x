@@ -28,12 +28,12 @@ TokenType := type : enum[uint8]{
 
 token ::= type : struct[
   offset(0)[
-    i :: int64;   ## valid if and only if typ = SignedInt
-    u :: uint64;  ## valid if and only if typ = UnsignedInt
-    f :: float64; ## valid if and only if typ = Float
-    c :: uint8;   ## valid if and only if typ in the set { Open, Close }
-    s :: string;  ## valid if and only if typ in the set
-                  ## { String, Identifier, Operator }
+    i : int64;   ## valid if and only if typ = SignedInt
+    u : uint64;  ## valid if and only if typ = UnsignedInt
+    f : float64; ## valid if and only if typ = Float
+    c : uint8;   ## valid if and only if typ in the set { Open, Close }
+    s : string;  ## valid if and only if typ in the set
+                 ## { String, Identifier, Operator }
   ];
   pos :: uint;    ## position in the tokenized text
   typ :: TokenType;
@@ -66,11 +66,7 @@ init/tokenizer ::= func(t --> tokenizer, s <- ptr[uint8], l <- uint) {
 ## Destructors:
 
 exit/token ::= func(t <--> token) {
-  if (t.typ = TokenType/String ||
-      t.typ = TokenType/Identifier ||
-      t.typ = TokenType/Operator) {
-    exit(t.s);
-  }
+  clear(t);
   t.typ := TokenType/None;
 }
 
@@ -122,11 +118,96 @@ skipWhitespace := func(t <--> tokenizer) {
 
 skipComment ::= func(t <--> tokenizer) {
   ...
-}
+};
 
 ## Setters:
 
+clearString/token := func(t <--> token) {
+  ## This method destructs the string if necessary
+  if (t.typ = TokenType/String ||
+      t.typ = TokenType/Identifier ||
+      t.typ = TokenType/Operator) {
+    exit(t.s);
+  }
+};
+
+initString/token := func(t <--> token) {
+  ## This method constructs the string if necessary
+  if (t.typ != TokenType/String &&
+      t.typ != TokenType/Identifier &&
+      t.typ != TokenType/Operator) {
+    init(t.s);
+  }
+};
+
 set/int ::= func(t <--> token, i <- int64) {
-  if (t.typ = TokenType ...
-  t.typ = TokenType/SignedInt;
-  t.i = i;
+  clearString(t);
+  t.typ := TokenType/SignedInt;
+  t.i := i;
+};
+
+set/uint ::= func(t <--> token, u <- uint64) {
+  clearString(t);
+  t.typ := TokenType/UnsignedInt;
+  t.u := u;
+};
+
+set/float ::= func(t <--> token, f <- float64) {
+  clearString(t);
+  t.typ := TokenType/Float;
+  t.f := f;
+};
+
+set/bracket ::= func(t <--> token, tt <- TokenType, c <- uint8) {
+  clearString(t);
+  t.typ := tt;
+  t.c := c;
+}
+
+set/string ::= func(t <--> token, s <- string) {
+  initString(t);
+  t.typ := TokenType/String;
+  t.s := s;
+};
+
+set/identifier ::= func(t <--> token, s <- string) {
+  initString(t);
+  t.typ := TokenType/Identifier;
+  t.s := s;
+};
+
+set/operator ::= func(t <--> token, s <- string) {
+  initString(t);
+  t.typ := TokenType/operator;
+  t.s := s;
+};
+
+get/int ::= func(t <--> token, i -> int64) {
+  assert(t.typ = TokenType/SignedInt, "Wrong token type.");
+  i := t.i;
+}
+
+get/uint ::= func(t <--> token, u -> uint64) {
+  assert(t.typ = TokenType/UnsignedInt, "Wrong token type.");
+  u := t.u;
+}
+
+get/float ::= func(t <--> token, f -> float64) {
+  assert(t.typ = TokenType/Float, "Wrong token type.");
+  f := t.f;
+}
+
+get/bracket ::= func(t <--> token, c -> uint8) {
+  assert(t.typ = TokenType/Open || t.typ = TokenType/Close,
+         "Wrong token type.");
+  c := t.c;
+}
+
+get/string ::= func(t <--> token, s -> string) {
+  assert(t.typ = TokenType/String ||
+         t.typ = TokenType/Identifier ||
+         t.typ = TokenType/Operator, "Wrong token type.");
+  s := t.s;
+}
+
+

@@ -92,6 +92,10 @@ set/ptrSize := func(s <--> string, m <- ptr[uint8], len <- uint) {
   }
 }
 
+set/string ::= func(s <--> string, t <-- string) {
+  set(s, t.buf, t.size);
+}
+
 ## Array access:
 
 c_str ::= func(s <-- string, r -> ptr[uint8]) {
