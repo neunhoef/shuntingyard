@@ -112,12 +112,29 @@ The name can be
     operator expression
   - **empty**, in which case it is merely used for the bracketing
 
-There are two rules: 
+There are three rules: 
 
   1. If the name is empty, the bracket type must not be empty and the vector
-     of subexpressions must have length 1
+     of subexpressions must have length 1, or the bracket type is empty
+     and the vector has length 0 (case of empty expression).
   2. If the name is an identifier, then all subexpressions must have
      non-empty bracket type.
+  3. If the name is an operator op1, then there must be at least 2
+     subexpressions, which must all fulfill at least one of the following:
+       - be an atom
+       - have non-empty bracket-type
+       - have an identifier as name
+       - have an operator op2 as name with a higher precedence as op1
+         (the first subexpression is allowed to have the same
+         precedence)
+
+Rule 1 rules out an invisible wrapping or a sequence of
+unseparated subexpressions (unless the whole expression is empty).
+
+Rule 2 gives the arguments of a prefix function expression separation.
+
+Rule 3 is necessary such that the canonical textual representation (see
+below) parses back to the original tree.
 
 In this document, we denote such a tree by putting the name (or "" for
 empty) in a line, with the right brackets around it (or none) and the
@@ -128,8 +145,8 @@ subexpressions in subsequent lines indented by a character.
      s2
      s3
 
-denotes a function expression in which `f` is the name, and there are
-three subexpressions s1, s2 and s3.
+denotes a function expression in which `f` is the name with no
+bracketing around it and there are three subexpressions s1, s2 and s3.
 
 Note that an infix notation of a function expression is also possible in the
 source representation. This tree:
@@ -144,7 +161,10 @@ is a tree, which would correspond to this source expression (see below):
 
     a+b*c
 
-and the tree
+Note that `*` has higher precedence than `+` and so this source expression
+is parsed back to the same tree.
+
+The tree
 
     *
      (+)
@@ -157,8 +177,18 @@ would be
     (a+b)*c
 
 and is a tree with top name `*`, one argument of round bracket type and
-a subtree for `a+b`, and a second argument pair of empty bracket type with
-a single atom `c`.
+a subtree for `(a+b)`, and a second argument pair of empty bracket type with
+a single atom `c`. Note that the tree
+
+    *
+     ("")
+      +
+       a
+       b
+     c
+
+is illegal by Rule 3. After all, `(a+b)*c` would parse to the first one
+above.
 
 
 Source representation
@@ -176,12 +206,12 @@ and there are three possibilities:
 
   1. The name is empty, in this case the representation is simply a pair
      of brackets of the right type around the canonical representation of
-     the single subexpression that is allowed by Rule 1 above
+     the single subexpression that is allowed by Rule 1 above.
   2. The name is an operator, in this case the canonical representation 
      is a (potentially bracketed) infix expression of the subexpressions.
   3. The name is an identifier, in this case the canonical representation
-     is one token for the identifier for the name, followed by the correctly
-     bracketed subexpressions.
+     is (potentially bracketed) one token for the identifier for the name,i
+     followed by the correctly bracketed subexpressions.
 
 Examples:
 
@@ -243,9 +273,10 @@ has
     a*b+c
 
 Note that due to the rules for operator precedence the canonical
-representation of a tree is always parsed back to the original tree, and
-except for comment removal and formatting, parsing followed by writing
-out the canonical representation always returns the same expression.
+representation of a valid tree is always parsed back to the original
+tree, and except for comment removal and formatting, parsing followed
+by writing out the canonical representation always returns the same
+expression.
 
 
 ## Tokenizer
@@ -253,7 +284,7 @@ out the canonical representation always returns the same expression.
 The tokenizer simply scans the source in a linear fashion and uses a single
 character lookahead method to find token boundaries and types.
 
-A number is detected by a decimal digit or a sign (+ or -) follewed by one.
+A number is detected by a decimal digit or a sign (+ or -) followed by one.
 Here are the rules to parse a number (TODO: explain better)
 
     +0..9 positive signed
@@ -280,7 +311,7 @@ for example. Integer overflow whilst scanning makes the value equal to 0.
 A string constant is recognized by the character `"`. Here are the
 rules to parse a string (TODO: explain better)
 
-    ended by `"` not preceded by a `\`
+    ended by a `"` which is not preceded by a `\`
     \t    is a tab
     \n    is a newline
     \r    is a carriage return
@@ -678,9 +709,9 @@ The return statement does not have an argument, one simple assigns to
 output arguments. An empty subexpression is allowed (as for example here
 the last one) and is a no-operation. Assignment takes a comma-separated
 list of L-values on the left of `:=` and a comma-separated list of
-expressions on the right. The semantic is to evaluate all expressions
-on the left and then assign the results to the list of L-values on the
-left.
+expressions on the right. The semantic meaning is to evaluate all
+expressions on the right from left to right and then assign the results
+to the list of L-values on the left.
 
 Example:
 
@@ -729,7 +760,7 @@ Loops:
       if (CONDITION4) { break };
       if (CONDITION5) { continue };
       ...
-    };
+    }
 
 The `name:` label part is optional, as is the `(name)` part in the
 `break` and `continue` statements. The `(CONDITION)` part is optional
@@ -741,7 +772,7 @@ Local variables are declared as follows:
 
     i := var : int64;            ## Uninitialized
     d := var : float64{12.0};    ## Initialized, could have been
-    o := var : ComplicatedObject{construct(12, "abc")};   ## initializer call
+    o := var : ComplicatedObject{init(12, "abc")};   ## initializer call
     u := var : SomeObject;       ## Default init() is called and must exist
 
 Local variables are automatically destructed when going out of scope
@@ -751,7 +782,7 @@ For a type T, `exit` always has this signature:
 
     destruct(this <-- ptr[T])
 
-Each constructor `init`for a type T has as first argument a
+Each constructor `init` for a type T has as first argument a
 `--> T`, usually called `this`. This type (and possibly others
 following) decides which constructor to take.
 
@@ -814,9 +845,9 @@ And here is how to use it:
 Semantics of local variables on the stack:
 
     f := func(a <- int) {
-      o := var : mytype{cons(1, 2, "abc")};
+      o := var : mytype{ini(1, 2, "abc")};
       ...
-      o2 := var : mytype{cons(2, 3)};
+      o2 := var : mytype{ini(2, 3)};
       ...
       o3 := var : ptr[mytype]{alloc(3, 4)};
       ...
@@ -832,7 +863,7 @@ is of type "mytype" and the constructor with arguments 1, 2 and "abc" is
 called. Similarly with o2. For o3, a new value of type pointer to mytype
 comes into scope. It is initialized as a pointer to a newly allocated
 structure of type "mytype" or a null pointer if allocation failed. Then
-the constructor "cons" is called with arguments 3 and 4.
+the constructor `init` is called with arguments 3 and 4.
 
 If there is an explicit definition of a function alloc like this exists:
 
@@ -843,7 +874,8 @@ or
     func alloc(nr <- uint, res -> ptr[mytype])
 
 then this is called, it must allocate memory for a "mytype" object and
-then the constructor must construct the object at the same time and return the pointer.
+then the constructor must construct the object at the same time and
+return the pointer.
 
 There is also
 
@@ -868,9 +900,9 @@ the pointer is null.
 
 Generic function are:
 
-    cons := func(p <-> ptr[T]);
-    cons := func(p <-> ptr[T], a <- uint);
-    dest := func(p <-> P);
+    init := func(p <-> ptr[T]);
+    init := func(p <-> ptr[T], a <- uint);
+    exit := func(p <-> P);
     isNull := func(p <- ptr[T], res -> bool);
     ":=" := func(p <-> P, q <- P);
     "+" := func(p <- ptr[T], steps <- int, res -> ptr[T]);
@@ -1050,3 +1082,120 @@ in the determined order.
 
 INVESTIGATION: How well does this plan play with the linker on various
 platforms???
+
+## Variant types
+
+If A and B and C are types, then
+
+    A | B | C
+
+is a variant type. For a variable
+
+    x := var : A | B | C;
+
+One can use pattern matching:
+
+    if (x ~ A) {
+      ## here, x is of type A
+    } (B) {
+      ## here, x is of type B
+    } (C) {
+      ## and here, x is of type C
+    };
+
+One does not have to cover all cases, an "else" part is allowed, but in
+it the original variable retains its type.
+
+If y is an expression of type `A | B | C`, then one can write:
+
+    if (y ~ A -> a) {
+      ## here, a is y but of type A
+    } (B -> b) {
+      ## here, b is y but of type B
+    } (C -> c) {
+      ## here, c is y but of type C
+    }
+
+This is implemented with a union:
+
+    struct Variant {
+      union {
+        A a;
+        B b;
+        C c;
+      };
+      uint8_t typ;   // can be 0 for A, 1 for B and 2 for C
+    };
+
+## Default constructors and destructors:
+
+If not defined, the default constructor for a struct type S simply calls
+all available default constructors for all members in the order of their
+appearance:
+
+    T := type : struct[
+      a : A;
+      b : B;
+      c : C;
+    ];
+
+    ## Automatically declared:
+    init/T ::= func(t --> T) {
+      init(t.a);   ## if available
+      init(t.b);   ## if available
+      init(t.c);   ## if available
+    };
+
+    ## Automatically declared:
+    exit/T ::= func(t <--> T) {
+      exit(t.c);   ## if available
+      exit(t.b);   ## if available
+      exit(t.a);   ## if available
+    };
+
+## Interface types
+
+We declare an interface for a data type as follows:
+
+    i ::= interface(T) {
+       init ::= func(t --> T); 
+    };
+
+    ...
+
+
+## Matching of methods for calls:
+
+Question: Assume that we have a function declaration
+
+    f/g := func(A1 ?1 T1, A2 ?1 T2, ...);
+
+in namespace ns, where A1 is some identifier, `?1` is one of `<-`,
+`<->`, `->`, `<--`, `<-->` and `->`, and T1 is a type. There is an
+arbitrary number of further such arguments.
+
+Assume furthermore that we have a call
+
+    n(a1, a2, ...)
+
+where a1 is of actual type S1, a2 is of type S2, etc.
+
+What are the exact conditions that the call uses the above declaration?
+
+ 0. If the source file of the call does not have ns in its search path,
+    then n must either be equal to ns/f or to ns/f/g, otherwise the
+    declaration is not even considered.
+
+ 1. If the source file of the call has ns in its search path, then n
+    must either be equal to f or to f/g or to n/f or to n/f/g, otherwise
+    the declaration is not even considered.
+
+    In other words, the declaration must be found.
+
+ 2. The arguments ai are assigned to the corresponding formal
+    parameters. This works as follows: If any ai is actually an
+    expression "x := y" and x is equal to one of the Aj, then that
+    ai is matched with that Aj ?j Tj. If x is not equal to any of the
+    Aj, then the method does not match. After all named arguments are
+    successfully assigned, the remaining unnamed arguments are matched
+    by order to the remaining parameters of the function.
